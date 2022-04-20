@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -22,6 +24,26 @@ public class UserController {
     public ResponseEntity<Object> signUp(@RequestBody SignUpDTO userWithCPF) {
         try {
             return ResponseEntity.ok(userService.signUp(userWithCPF));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @PostMapping("/delete-user")
+    @Secured("ROLE_ADMIN")
+    public ResponseEntity<Object> deleteUser(@RequestBody UUID userId) {
+        try {
+            return ResponseEntity.ok(userService.deleteUser(userId));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @PostMapping("/reactivate-user")
+    @Secured("ROLE_ADMIN")
+    public ResponseEntity<Object> reactivateUser(@RequestBody ReactivateUserDTO reactivateUserDTO) {
+        try {
+            return ResponseEntity.ok(userService.reactivateUser(reactivateUserDTO));
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }

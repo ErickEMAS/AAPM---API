@@ -3,6 +3,8 @@ package br.com.apm.domain.service;
 import br.com.apm.domain.dto.*;
 import br.com.apm.domain.models.UserAPI;
 
+import java.util.UUID;
+
 public interface UserService {
 
     String signUp(SignUpDTO signUpDTO);
@@ -22,4 +24,8 @@ public interface UserService {
     UserDTO changeEmail(ChangeEmaildDTO changeEmaildDTO);
 
     UserDTO updateUser(UpdateUserDTO updateUserDTO);
+
+    String deleteUser(UUID userId);
+
+    String reactivateUser(ReactivateUserDTO reactivateUserDTO);
 }

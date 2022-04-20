@@ -5,10 +5,10 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
-public class ConfirmCodeDTO {
+public class ReactivateUserDTO {
 
+    private UUID id;
     private String email;
-    private String code;
-    private int codeType;
+    private String cpf;
 
 }

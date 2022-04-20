@@ -12,6 +12,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -38,14 +39,15 @@ public class UserServiceImpl implements UserService {
 
         UserAPI user = userRepository.findByCpf(signUpDTO.getCpf());
 
-        if (user != null)
+        if (user != null){
+            if (!user.isAccountNonLocked())
+                throw new IllegalArgumentException("Usuário bloqueado");
             throw new IllegalArgumentException("Usuário já cadastrado");
+        }
+
 
         if (signUpDTO.getId() != null)
             throw new IllegalArgumentException("Campo Id não dever ser informado");
-
-        if (signUpDTO.getEmail() != null)
-            throw new IllegalArgumentException("Campo E-mail não dever ser informado nessa etapa");
 
         if (signUpDTO.getPassword() != null)
             throw new IllegalArgumentException("Campo Senha não dever ser informado nessa etapa");
@@ -61,13 +63,14 @@ public class UserServiceImpl implements UserService {
 
         UserAPI newUser = new UserAPI();
         newUser.setCpf(signUpDTO.getCpf());
+        newUser.setEmail(signUpDTO.getEmail());
         newUser.setFullName(signUpDTO.getFullName());
         newUser.setNickName(signUpDTO.getNickName());
         newUser.setRoles(roles);
         newUser.setAccountNonExpired(true);
         newUser.setAccountNonLocked(true);
         newUser.setCredentialsNonExpired(true);
-        newUser.setEnabled(true);
+        newUser.setEnabled(false);
 
         newUser = userRepository.save(newUser);
 
@@ -78,11 +81,14 @@ public class UserServiceImpl implements UserService {
     public UserDTO signUpStepOne(SignUpDTO userWithCPF) {
         UserAPI user = userRepository.findByCpf(userWithCPF.getCpf());
 
-        if (user.isEmailIsConfirmed() || user.getEmail() != null)
+        if (user.isEmailIsConfirmed())
             throw new IllegalArgumentException("Usuário já cadastrado");
 
-        if (user == null)
-            throw new IllegalArgumentException("Nenhum cadastro com o CPF informado foi localizado no banco de dados");
+        if (user == null || !user.isAccountNonLocked()|| user.getEnabled() != true) {
+            if (!user.isAccountNonLocked())
+                throw new IllegalArgumentException("Conta encerrada");
+            throw new IllegalArgumentException("Nenhuma conta cadastrada com o CPF informado foi localizado no banco de dados");
+        }
 
         return UserDTO.toUserDTO(user);
     }
@@ -90,6 +96,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDTO signUpStepTwo(SignUpDTO signUpDTO) {
         UserAPI user = userRepository.findById(signUpDTO.getId()).get();
+
+        if (!user.isAccountNonLocked())
+            throw new IllegalArgumentException("Conta encerrada");
 
         if (user.isEmailIsConfirmed())
             throw new IllegalArgumentException("Usuário já cadastrado");
@@ -116,6 +125,7 @@ public class UserServiceImpl implements UserService {
         user.setNickName(signUpDTO.getNickName());
         user.setPassword(encoder.encode(signUpDTO.getPassword()));
         user.setCode(codeGenerator());
+        user.setEnabled(true);
         user.setCodeType("EMAIL_CONFIRM");
 
         sendEmail(user);
@@ -129,7 +139,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String confirmEmail(ConfirmCodeDTO confirmEmailDTO) {
-        UserAPI user = userRepository.findById(confirmEmailDTO.getUserId()).get();
+        UserAPI user = userRepository.findByEmail(confirmEmailDTO.getEmail());
 
         if (user.isEmailIsConfirmed())
             throw new IllegalArgumentException("E-mail já foi confirmado");
@@ -147,7 +157,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String sendCode(ConfirmCodeDTO confirmEmailDTO) {
-        UserAPI user = userRepository.findById(confirmEmailDTO.getUserId()).get();
+        UserAPI user = userRepository.findByEmail(confirmEmailDTO.getEmail());
 
         if (user.isEmailIsConfirmed() && confirmEmailDTO.getCodeType() == 1)
             throw new IllegalArgumentException("E-mail já foi confirmado");
@@ -177,7 +187,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String changePasswordStepOne(ChangePasswordDTO changePasswordDTO) {
-        UserAPI user = userRepository.findById(changePasswordDTO.getUserId()).get();
+        UserAPI user = userRepository.findByEmail(changePasswordDTO.getEmail());
 
         verifyCode(user, changePasswordDTO.getCode(), "PASSWORD_CHANGE");
 
@@ -189,7 +199,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String changePasswordStepTwo(ChangePasswordDTO changePasswordDTO) {
-        UserAPI user = userRepository.findById(changePasswordDTO.getUserId()).get();
+        UserAPI user = userRepository.findByEmail(changePasswordDTO.getEmail());
 
         verifyCode(user, changePasswordDTO.getCode(), "PASSWORD_CHANGE");
 
@@ -244,6 +254,38 @@ public class UserServiceImpl implements UserService {
         user = userRepository.save(user);
 
         return UserDTO.toUserDTO(user);
+    }
+
+    @Override
+    public String deleteUser(UUID userId) {
+        UserAPI user = userRepository.findById(userId).get();
+
+        user.setAccountNonExpired(false);
+        user.setAccountNonLocked(false);
+        user.setCredentialsNonExpired(false);
+        user.setEmailIsConfirmed(false);
+        user.setEnabled(false);
+        user.setPassword(null);
+
+        user = userRepository.save(user);
+
+        return "Usuário excluido";
+    }
+
+    @Override
+    public String reactivateUser(ReactivateUserDTO reactivateUserDTO) {
+        UserAPI user = new UserAPI();
+
+        if (reactivateUserDTO.getId() != null)
+            user = userRepository.findById(reactivateUserDTO.getId()).get();
+
+        if (reactivateUserDTO.getCpf() != null)
+            user = userRepository.findByCpf(reactivateUserDTO.getCpf());
+
+        if (reactivateUserDTO.getEmail() != null)
+            user = userRepository.findByEmail(reactivateUserDTO.getEmail());
+
+        return "Usuário reativado";
     }
 
 
