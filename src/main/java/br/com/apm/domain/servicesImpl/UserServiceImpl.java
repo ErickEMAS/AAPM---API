@@ -7,6 +7,9 @@ import br.com.apm.data.repositories.UserRepository;
 import br.com.apm.domain.models.Role;
 import br.com.apm.domain.models.UserAPI;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.MailException;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -24,6 +27,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private RoleRepository roleRepository;
 
+    @Autowired
+    private JavaMailSender javaMailSender;
+
     @Override
     public String signUp(SignUpDTO signUpDTO) {
 
@@ -38,6 +44,9 @@ public class UserServiceImpl implements UserService {
         if (signUpDTO.getId() != null)
             throw new IllegalArgumentException("Campo Id não dever ser informado");
 
+        if (signUpDTO.getEmail() != null)
+            throw new IllegalArgumentException("Campo E-mail não dever ser informado nessa etapa");
+
         if (signUpDTO.getPassword() != null)
             throw new IllegalArgumentException("Campo Senha não dever ser informado nessa etapa");
 
@@ -51,7 +60,6 @@ public class UserServiceImpl implements UserService {
         roles.add(role);
 
         UserAPI newUser = new UserAPI();
-        newUser.setEmail(signUpDTO.getEmail());
         newUser.setCpf(signUpDTO.getCpf());
         newUser.setFullName(signUpDTO.getFullName());
         newUser.setNickName(signUpDTO.getNickName());
@@ -60,7 +68,6 @@ public class UserServiceImpl implements UserService {
         newUser.setAccountNonLocked(true);
         newUser.setCredentialsNonExpired(true);
         newUser.setEnabled(true);
-        newUser.setEmailIsConfirmed(false);
 
         newUser = userRepository.save(newUser);
 
@@ -71,7 +78,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO signUpStepOne(SignUpDTO userWithCPF) {
         UserAPI user = userRepository.findByCpf(userWithCPF.getCpf());
 
-        if (user.isEmailIsConfirmed())
+        if (user.isEmailIsConfirmed() || user.getEmail() != null)
             throw new IllegalArgumentException("Usuário já cadastrado");
 
         if (user == null)
@@ -105,12 +112,14 @@ public class UserServiceImpl implements UserService {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
         user.setEmail(signUpDTO.getEmail());
-        user.setCpf(signUpDTO.getCpf());
         user.setFullName(signUpDTO.getFullName());
         user.setNickName(signUpDTO.getNickName());
         user.setPassword(encoder.encode(signUpDTO.getPassword()));
         user.setCode(codeGenerator());
         user.setCodeType("EMAIL_CONFIRM");
+
+        sendEmail(user);
+
         user.setValidityCode(LocalDateTime.now().plusMinutes(5));
 
         user = userRepository.save(user);
@@ -156,6 +165,8 @@ public class UserServiceImpl implements UserService {
                 user.setCodeType("PASSWORD_CHANGE");
                 break;
         }
+
+        sendEmail(user);
 
         user.setValidityCode(LocalDateTime.now().plusMinutes(5));
 
@@ -234,6 +245,42 @@ public class UserServiceImpl implements UserService {
 
         return UserDTO.toUserDTO(user);
     }
+
+
+    public void sendEmail(UserAPI user){
+        String emailSubject = "App Agente Parceiro Magalu - Código para ";
+        String emailText = "Olá Agente! \n Conforme solicitado segue seu codigo para ";
+
+        switch (user.getCodeType()){
+            case "EMAIL_CONFIRM":
+                emailSubject += "Confirmação de E-mail";
+                emailText += "confirmação de e-mail \n Código: ";
+                break;
+            case "EMAIL_CHANGE":
+                emailSubject += "alteração de E-mail";
+                emailText += "alteração de E-mail \n Código: ";
+                break;
+            case "PASSWORD_CHANGE":
+                emailSubject += "alteração de senha";
+                emailText += "alteração de senha \n Código: ";
+                break;
+        }
+
+        emailText += user.getCode();
+
+        try {
+            SimpleMailMessage email = new SimpleMailMessage();
+            email.setFrom("agente.parceiro.magalu@gmail.com");
+            email.setTo(user.getEmail());
+            email.setSubject(emailSubject);
+            email.setText(emailText);
+            javaMailSender.send(email);
+        } catch (MailException emailError) {
+            throw new IllegalArgumentException(emailError);
+        }
+    }
+
+
 
     private boolean verifyPassword(UserAPI user, String password, String passwordConfirm){
         if (password == null)
