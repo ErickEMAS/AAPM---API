@@ -3,6 +3,7 @@ package br.com.apm.application.controllers;
 import br.com.apm.domain.dto.*;
 import br.com.apm.domain.models.UserAPI;
 import br.com.apm.domain.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
@@ -13,11 +14,8 @@ import java.util.UUID;
 @RequestMapping("/user")
 public class UserController {
 
+    @Autowired
     private UserService userService;
-
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
 
     @PostMapping("/sign-up")
     @Secured("ROLE_ADMIN")

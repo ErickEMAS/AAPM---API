@@ -1,6 +1,9 @@
 package br.com.apm.domain.servicesImpl;
 
+import br.com.apm.data.repositories.CarteiraRepository;
 import br.com.apm.domain.dto.*;
+import br.com.apm.domain.enums.CodeType;
+import br.com.apm.domain.models.Carteira;
 import br.com.apm.domain.service.UserService;
 import br.com.apm.data.repositories.RoleRepository;
 import br.com.apm.data.repositories.UserRepository;
@@ -30,6 +33,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private JavaMailSender javaMailSender;
+
+    @Autowired
+    private CarteiraRepository carteiraRepository;
 
     @Override
     public String signUp(SignUpDTO signUpDTO) {
@@ -126,7 +132,7 @@ public class UserServiceImpl implements UserService {
         user.setPassword(encoder.encode(signUpDTO.getPassword()));
         user.setCode(codeGenerator());
         user.setEnabled(true);
-        user.setCodeType("EMAIL_CONFIRM");
+        user.setCodeType(CodeType.EMAIL_CONFIRM);
 
         sendEmail(user);
 
@@ -144,7 +150,7 @@ public class UserServiceImpl implements UserService {
         if (user.isEmailIsConfirmed())
             throw new IllegalArgumentException("E-mail já foi confirmado");
 
-        verifyCode(user, confirmEmailDTO.getCode(), "EMAIL_CONFIRM");;
+        verifyCode(user, confirmEmailDTO.getCode(), CodeType.EMAIL_CONFIRM);
 
         user.setEmailIsConfirmed(true);
         user.setCode(null);
@@ -159,22 +165,11 @@ public class UserServiceImpl implements UserService {
     public String sendCode(ConfirmCodeDTO confirmEmailDTO) {
         UserAPI user = userRepository.findByEmail(confirmEmailDTO.getEmail());
 
-        if (user.isEmailIsConfirmed() && confirmEmailDTO.getCodeType() == 1)
+        if (user.isEmailIsConfirmed() && confirmEmailDTO.getCodeType() == CodeType.EMAIL_CONFIRM)
             throw new IllegalArgumentException("E-mail já foi confirmado");
 
         user.setCode(codeGenerator());
-
-        switch (confirmEmailDTO.getCodeType()){
-            case 1:
-                user.setCodeType("EMAIL_CONFIRM");
-                break;
-            case 2:
-                user.setCodeType("EMAIL_CHANGE");
-                break;
-            case 3:
-                user.setCodeType("PASSWORD_CHANGE");
-                break;
-        }
+        user.setCodeType(confirmEmailDTO.getCodeType());
 
         sendEmail(user);
 
@@ -189,7 +184,7 @@ public class UserServiceImpl implements UserService {
     public String changePasswordStepOne(ChangePasswordDTO changePasswordDTO) {
         UserAPI user = userRepository.findByEmail(changePasswordDTO.getEmail());
 
-        verifyCode(user, changePasswordDTO.getCode(), "PASSWORD_CHANGE");
+        verifyCode(user, changePasswordDTO.getCode(), CodeType.PASSWORD_CHANGE);
 
         user.setValidityCode(LocalDateTime.now().plusMinutes(20));
         userRepository.save(user);
@@ -201,7 +196,7 @@ public class UserServiceImpl implements UserService {
     public String changePasswordStepTwo(ChangePasswordDTO changePasswordDTO) {
         UserAPI user = userRepository.findByEmail(changePasswordDTO.getEmail());
 
-        verifyCode(user, changePasswordDTO.getCode(), "PASSWORD_CHANGE");
+        verifyCode(user, changePasswordDTO.getCode(), CodeType.PASSWORD_CHANGE);
 
         verifyPassword(user, changePasswordDTO.getPassword(), changePasswordDTO.getPasswordConfirm());
 
@@ -223,7 +218,7 @@ public class UserServiceImpl implements UserService {
 
         user = userRepository.findById(user.getId()).get();
 
-        verifyCode(user, changeEmaildDTO.getCode(), "EMAIL_CHANGE");
+        verifyCode(user, changeEmaildDTO.getCode(), CodeType.EMAIL_CHANGE);
 
         if (user.getEmail().intern() == changeEmaildDTO.getNewEmail().intern())
             throw new IllegalArgumentException("O novo e-mail não pode ser igual ao o e-mail já cadastrado");
@@ -293,19 +288,19 @@ public class UserServiceImpl implements UserService {
         String emailSubject = "App Agente Parceiro Magalu - Código para ";
         String emailText = "Olá Agente! \n Conforme solicitado segue seu codigo para ";
 
-        switch (user.getCodeType()){
-            case "EMAIL_CONFIRM":
-                emailSubject += "Confirmação de E-mail";
-                emailText += "confirmação de e-mail \n Código: ";
-                break;
-            case "EMAIL_CHANGE":
-                emailSubject += "alteração de E-mail";
-                emailText += "alteração de E-mail \n Código: ";
-                break;
-            case "PASSWORD_CHANGE":
-                emailSubject += "alteração de senha";
-                emailText += "alteração de senha \n Código: ";
-                break;
+        if (user.getCodeType() == CodeType.EMAIL_CONFIRM) {
+            emailSubject += "Confirmação de E-mail";
+            emailText += "confirmação de e-mail \n Código: ";
+        }
+
+        if (user.getCodeType() == CodeType.EMAIL_CHANGE) {
+            emailSubject += "alteração de E-mail";
+            emailText += "alteração de E-mail \n Código: ";
+        }
+
+        if (user.getCodeType() == CodeType.PASSWORD_CHANGE) {
+            emailSubject += "alteração de senha";
+            emailText += "alteração de senha \n Código: ";
         }
 
         emailText += user.getCode();
@@ -340,7 +335,7 @@ public class UserServiceImpl implements UserService {
         return true;
     }
 
-    private boolean verifyCode(UserAPI user, String code, String codeType){
+    private boolean verifyCode(UserAPI user, String code, CodeType codeType){
         if (code == null)
             throw new IllegalArgumentException("Não existe código para ser confirmado");
 
@@ -351,14 +346,14 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Código expirado");
         }
 
-        if (user.getCodeType().intern() != codeType) {
+        if (user.getCodeType() != codeType) {
             user.setCode(null);
             user.setCodeType(null);
             userRepository.save(user);
             throw new IllegalArgumentException("Código inválido");
         }
 
-        if (codeType != "EMAIL_CONFIRM") {
+        if (codeType != CodeType.EMAIL_CONFIRM) {
             if (!user.isEmailIsConfirmed()) {
                 user.setCode(null);
                 user.setCodeType(null);
@@ -383,6 +378,16 @@ public class UserServiceImpl implements UserService {
         }
 
         return code;
+    }
+
+    public UserAPI addCarteiraToUser(UserAPI user){
+        Carteira carteira = new Carteira();
+        carteiraRepository.save(carteira);
+
+        user.setCarteira(carteira);
+        user = userRepository.save(user);
+
+        return user;
     }
 
 }

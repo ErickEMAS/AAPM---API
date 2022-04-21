@@ -1,5 +1,6 @@
 package br.com.apm.domain.models;
 
+import br.com.apm.domain.enums.CodeType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import org.hibernate.id.GUIDGenerator;
@@ -30,14 +31,17 @@ public class UserAPI implements UserDetails {
     private boolean emailIsConfirmed;
 
     private String code;
-    private String CodeType;
+    private CodeType codeType;
     private LocalDateTime validityCode;
-
 
     private Boolean AccountNonExpired;
     private Boolean AccountNonLocked;
     private Boolean CredentialsNonExpired;
     private Boolean Enabled;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "carteira_id")
+    private Carteira carteira;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
