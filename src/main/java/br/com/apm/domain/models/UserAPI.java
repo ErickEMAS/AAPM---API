@@ -1,9 +1,7 @@
 package br.com.apm.domain.models;
 
 import br.com.apm.domain.enums.CodeType;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
-import org.hibernate.id.GUIDGenerator;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -11,7 +9,6 @@ import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @Data
@@ -39,15 +36,15 @@ public class UserAPI implements UserDetails {
     private Boolean CredentialsNonExpired;
     private Boolean Enabled;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "carteira_id")
-    private Carteira carteira;
-
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id"))
     private List<Role> roles;
+
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "carteira_id", referencedColumnName = "id")
+    private Carteira carteira;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

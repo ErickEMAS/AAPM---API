@@ -15,7 +15,6 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -67,18 +66,26 @@ public class UserServiceImpl implements UserService {
         List<Role> roles = new ArrayList<>();
         roles.add(role);
 
+        Carteira newCarteira = new Carteira();
+        newCarteira.setSellers(new ArrayList<>());
+        newCarteira = carteiraRepository.save(newCarteira);
+
         UserAPI newUser = new UserAPI();
         newUser.setCpf(signUpDTO.getCpf());
         newUser.setEmail(signUpDTO.getEmail());
         newUser.setFullName(signUpDTO.getFullName());
         newUser.setNickName(signUpDTO.getNickName());
         newUser.setRoles(roles);
+        newUser.setCarteira(newCarteira);
         newUser.setAccountNonExpired(true);
         newUser.setAccountNonLocked(true);
         newUser.setCredentialsNonExpired(true);
         newUser.setEnabled(false);
 
         newUser = userRepository.save(newUser);
+
+        newCarteira.setOwner(newUser);
+        newCarteira = carteiraRepository.save(newCarteira);
 
         return "Usuário cadastrado com sucesso";
     }
@@ -90,7 +97,7 @@ public class UserServiceImpl implements UserService {
         if (user.isEmailIsConfirmed())
             throw new IllegalArgumentException("Usuário já cadastrado");
 
-        if (user == null || !user.isAccountNonLocked()|| user.getEnabled() != true) {
+        if (user == null) {
             if (!user.isAccountNonLocked())
                 throw new IllegalArgumentException("Conta encerrada");
             throw new IllegalArgumentException("Nenhuma conta cadastrada com o CPF informado foi localizado no banco de dados");
@@ -164,6 +171,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public String sendCode(ConfirmCodeDTO confirmEmailDTO) {
         UserAPI user = userRepository.findByEmail(confirmEmailDTO.getEmail());
+
+        if (user == null)
+            throw new IllegalArgumentException("Usuário não localizado");
 
         if (user.isEmailIsConfirmed() && confirmEmailDTO.getCodeType() == CodeType.EMAIL_CONFIRM)
             throw new IllegalArgumentException("E-mail já foi confirmado");
@@ -382,7 +392,9 @@ public class UserServiceImpl implements UserService {
 
     public UserAPI addCarteiraToUser(UserAPI user){
         Carteira carteira = new Carteira();
-        carteiraRepository.save(carteira);
+        carteira.setSellers(new ArrayList<>());
+        carteira.setOwner(user);
+        carteira = carteiraRepository.save(carteira);
 
         user.setCarteira(carteira);
         user = userRepository.save(user);

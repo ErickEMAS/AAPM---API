@@ -1,13 +1,15 @@
 package br.com.apm.domain.models;
 
-import br.com.apm.domain.servicesImpl.SellerImpl;
 import lombok.Data;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import javax.persistence.*;
 import java.util.List;
 import java.util.UUID;
 
 @Data
+@Entity
 public class Seller {
 
     @Id
@@ -28,7 +30,8 @@ public class Seller {
     private String cadastro;
     private String dataPedidoTeste;
 
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @Fetch(FetchMode.SUBSELECT)
     private List<SellerField> sellerFields;
 
     @ManyToOne(fetch = FetchType.EAGER)
