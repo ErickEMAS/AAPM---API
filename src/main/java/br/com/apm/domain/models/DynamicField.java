@@ -2,11 +2,10 @@ package br.com.apm.domain.models;
 
 import br.com.apm.domain.enums.TypeField;
 import lombok.Data;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
 import java.util.UUID;
 
 @Data
@@ -19,4 +18,8 @@ public class DynamicField {
 
     private String name;
     private TypeField type;
+
+    @OneToOne(fetch = FetchType.EAGER)
+    @Fetch(FetchMode.JOIN)
+    private DynamicQuestionCheckList DanymicquestionCheckList;
 }

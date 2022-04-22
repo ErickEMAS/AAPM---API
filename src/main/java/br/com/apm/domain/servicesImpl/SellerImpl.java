@@ -38,8 +38,23 @@ public class SellerImpl implements SellerService {
     @Autowired
     private CarteiraRepository carteiraRepository;
 
+    @Autowired
+    private CheckListVisitaRepository checkListVisitaRepository;
+
+    @Autowired
+    private DynamicQuestionCheckListRepository dynamicQuestionCheckListRepository;
+
+    @Autowired
+    private QuestionCheckListRepository questionCheckListRepository;
+
     @Override
     public DynamicField addField(DynamicField dynamicField) {
+        if (dynamicField.getName() == null)
+            throw new IllegalArgumentException("Campo Nome é obrigatório");
+
+        if (dynamicField.getType() == null)
+            throw new IllegalArgumentException("Campo Tipo é obrigatório");
+
         DynamicField newDynamicField = new DynamicField();
         newDynamicField.setName(dynamicField.getName());
         newDynamicField.setType(dynamicField.getType());
@@ -92,6 +107,34 @@ public class SellerImpl implements SellerService {
         seller = updateSellerFields(seller);
 
         return seller;
+    }
+
+    @Override
+    public DynamicQuestionCheckList addQuestionChecklist(DynamicQuestionCheckList dynamicQuestionCheckList) {
+
+        if (dynamicQuestionCheckList.getFieldUpdate() == null)
+            throw new IllegalArgumentException("Um campo dinamico deve ser relacionado a essa questão");
+
+        if (dynamicQuestionCheckList.getQuestion() == null)
+            throw new IllegalArgumentException("Campo pergunta é obrigátorio");
+
+        DynamicField dynamicField = new DynamicField();
+
+        if (dynamicQuestionCheckList.getFieldUpdate().getId() != null)
+            dynamicField = dynamicFieldRepository.findById(dynamicQuestionCheckList.getFieldUpdate().getId()).get();
+
+        if (dynamicQuestionCheckList.getFieldUpdate().getId() == null)
+            dynamicField = addField(dynamicQuestionCheckList.getFieldUpdate());
+
+        dynamicQuestionCheckList.setQuestion(dynamicQuestionCheckList.getQuestion());
+        dynamicQuestionCheckList.setActive(dynamicQuestionCheckList.isActive());
+        dynamicQuestionCheckList.setAnswerRequired(dynamicQuestionCheckList.isAnswerRequired());
+        dynamicQuestionCheckList.setAlternatives(dynamicQuestionCheckList.getAlternatives());
+        dynamicQuestionCheckList.setFieldUpdate(dynamicField);
+
+        dynamicQuestionCheckList = dynamicQuestionCheckListRepository.save(dynamicQuestionCheckList);
+
+        return dynamicQuestionCheckList;
     }
 
     private Seller updateSellerFields(Seller seller){

@@ -25,7 +25,7 @@ public class UserAPI implements UserDetails {
     private String fullName;
     private String nickName;
     private String email;
-    private boolean emailIsConfirmed;
+    private boolean emailConfirmed;
 
     private String code;
     private CodeType codeType;

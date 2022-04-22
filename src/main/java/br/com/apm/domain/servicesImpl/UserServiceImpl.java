@@ -94,7 +94,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO signUpStepOne(SignUpDTO userWithCPF) {
         UserAPI user = userRepository.findByCpf(userWithCPF.getCpf());
 
-        if (user.isEmailIsConfirmed())
+        if (user.isEmailConfirmed())
             throw new IllegalArgumentException("Usuário já cadastrado");
 
         if (user == null) {
@@ -113,7 +113,7 @@ public class UserServiceImpl implements UserService {
         if (!user.isAccountNonLocked())
             throw new IllegalArgumentException("Conta encerrada");
 
-        if (user.isEmailIsConfirmed())
+        if (user.isEmailConfirmed())
             throw new IllegalArgumentException("Usuário já cadastrado");
 
         if (signUpDTO.getCpf().intern() != user.getCpf().intern())
@@ -154,12 +154,12 @@ public class UserServiceImpl implements UserService {
     public String confirmEmail(ConfirmCodeDTO confirmEmailDTO) {
         UserAPI user = userRepository.findByEmail(confirmEmailDTO.getEmail());
 
-        if (user.isEmailIsConfirmed())
+        if (user.isEmailConfirmed())
             throw new IllegalArgumentException("E-mail já foi confirmado");
 
         verifyCode(user, confirmEmailDTO.getCode(), CodeType.EMAIL_CONFIRM);
 
-        user.setEmailIsConfirmed(true);
+        user.setEmailConfirmed(true);
         user.setCode(null);
         user.setCodeType(null);
         user.setValidityCode(null);
@@ -175,7 +175,7 @@ public class UserServiceImpl implements UserService {
         if (user == null)
             throw new IllegalArgumentException("Usuário não localizado");
 
-        if (user.isEmailIsConfirmed() && confirmEmailDTO.getCodeType() == CodeType.EMAIL_CONFIRM)
+        if (user.isEmailConfirmed() && confirmEmailDTO.getCodeType() == CodeType.EMAIL_CONFIRM)
             throw new IllegalArgumentException("E-mail já foi confirmado");
 
         user.setCode(codeGenerator());
@@ -237,7 +237,7 @@ public class UserServiceImpl implements UserService {
         user.setCode(null);
         user.setCodeType(null);
         user.setValidityCode(null);
-        user.setEmailIsConfirmed(false);
+        user.setEmailConfirmed(false);
         userRepository.save(user);
 
         return UserDTO.toUserDTO(user);
@@ -250,7 +250,7 @@ public class UserServiceImpl implements UserService {
 
         user = userRepository.findById(user.getId()).get();
 
-        if (!user.isEmailIsConfirmed())
+        if (!user.isEmailConfirmed())
             throw new IllegalArgumentException("E-mail precisa ser confirmado para prosseguir");
 
         if(updateUserDTO.getNickName() != null)
@@ -268,7 +268,7 @@ public class UserServiceImpl implements UserService {
         user.setAccountNonExpired(false);
         user.setAccountNonLocked(false);
         user.setCredentialsNonExpired(false);
-        user.setEmailIsConfirmed(false);
+        user.setEmailConfirmed(false);
         user.setEnabled(false);
         user.setPassword(null);
 
@@ -364,7 +364,7 @@ public class UserServiceImpl implements UserService {
         }
 
         if (codeType != CodeType.EMAIL_CONFIRM) {
-            if (!user.isEmailIsConfirmed()) {
+            if (!user.isEmailConfirmed()) {
                 user.setCode(null);
                 user.setCodeType(null);
                 userRepository.save(user);

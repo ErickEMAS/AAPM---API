@@ -2,6 +2,8 @@ package br.com.apm.application.controllers;
 
 import br.com.apm.domain.dto.*;
 import br.com.apm.domain.models.DynamicField;
+import br.com.apm.domain.models.DynamicQuestionCheckList;
+import br.com.apm.domain.models.QuestionCheckList;
 import br.com.apm.domain.models.Seller;
 import br.com.apm.domain.service.SellerService;
 import br.com.apm.domain.service.UserService;
@@ -24,6 +26,16 @@ public class SellerController {
     public ResponseEntity<Object> addField(@RequestBody DynamicField dynamicField) {
         try {
             return ResponseEntity.ok(sellerService.addField(dynamicField));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @PostMapping("/add-question-checklist")
+    @Secured("ROLE_ADMIN")
+    public ResponseEntity<Object> addQuestionChecklist(@RequestBody DynamicQuestionCheckList dynamicQuestionCheckList) {
+        try {
+            return ResponseEntity.ok(sellerService.addQuestionChecklist(dynamicQuestionCheckList));
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }

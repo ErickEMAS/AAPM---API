@@ -60,7 +60,7 @@ public class InitSeeder {
         user.setFullName("Admin");
         user.setNickName("Adm");
         user.setCpf("00000000000");
-        user.setEmailIsConfirmed(true);
+        user.setEmailConfirmed(true);
         user.setAccountNonExpired(true);
         user.setAccountNonLocked(true);
         user.setCredentialsNonExpired(true);
@@ -77,7 +77,7 @@ public class InitSeeder {
         user.setFullName("User");
         user.setNickName("usr");
         user.setCpf("00000000000");
-        user.setEmailIsConfirmed(true);
+        user.setEmailConfirmed(true);
         user.setAccountNonExpired(true);
         user.setAccountNonLocked(true);
         user.setCredentialsNonExpired(true);
