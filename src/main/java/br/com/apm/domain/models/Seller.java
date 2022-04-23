@@ -34,6 +34,10 @@ public class Seller {
     @Fetch(FetchMode.SUBSELECT)
     private List<SellerField> sellerFields;
 
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @Fetch(FetchMode.SUBSELECT)
+    private List<CheckListVisita> checkListVisitas;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "carteira_id")
     private Carteira carteira;

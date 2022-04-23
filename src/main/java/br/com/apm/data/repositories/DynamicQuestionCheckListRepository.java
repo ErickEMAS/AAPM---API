@@ -4,7 +4,12 @@ import br.com.apm.domain.models.Carteira;
 import br.com.apm.domain.models.DynamicQuestionCheckList;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface DynamicQuestionCheckListRepository extends JpaRepository<DynamicQuestionCheckList, UUID> {
+
+    List<DynamicQuestionCheckList> findByActiveTrue();
+    List<DynamicQuestionCheckList> findByActiveFalse();
+
 }

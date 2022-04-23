@@ -4,24 +4,16 @@ import br.com.apm.data.repositories.*;
 import br.com.apm.domain.dto.*;
 import br.com.apm.domain.models.*;
 import br.com.apm.domain.service.SellerService;
-import br.com.apm.domain.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
-import java.util.UUID;
 
 @Service
-public class SellerImpl implements SellerService {
+public class SellerServiceImpl implements SellerService {
 
     @Autowired
     private DynamicFieldRepository dynamicFieldRepository;
@@ -81,8 +73,6 @@ public class SellerImpl implements SellerService {
             user = userRepository.save(user);
         }
 
-        Carteira userCarteira = carteiraRepository.findById(user.getCarteira().getId()).get();
-
         Seller seller = new Seller();
 
         seller.setCnpj(sellerDTO.getCnpj());
@@ -100,9 +90,6 @@ public class SellerImpl implements SellerService {
         seller.setDataPedidoTeste(sellerDTO.getDataPedidoTeste());
 
         seller = sellerRepository.save(seller);
-
-        if (seller.getSellerFields() ==  null)
-            seller.setSellerFields(new ArrayList<>());
 
         seller = updateSellerFields(seller);
 
@@ -137,13 +124,37 @@ public class SellerImpl implements SellerService {
         return dynamicQuestionCheckList;
     }
 
+    @Override
+    public CheckListVisita startChecklist(Seller seller) {
+        Seller _seller = sellerRepository.findById(seller.getId()).get();
+
+        if (_seller == null)
+            throw new IllegalArgumentException("Seller não localizado");
+
+        _seller = updateSellerFields(_seller);
+
+        CheckListVisita newCheckListVisita = new CheckListVisita();
+
+        if (_seller.getCheckListVisitas().size() > 0)
+            if (_seller.getCheckListVisitas().get(_seller.getCheckListVisitas().size() - 1).getDataVisita() == null)
+                newCheckListVisita = _seller.getCheckListVisitas().get(_seller.getCheckListVisitas().size() - 1);
+
+        newCheckListVisita.setSeller(_seller);
+
+        checkListVisitaRepository.save(newCheckListVisita);
+
+        newCheckListVisita = updateQuestionsCheckList(newCheckListVisita);
+
+        return newCheckListVisita;
+    }
+
     private Seller updateSellerFields(Seller seller){
         List<DynamicField> dynamicFields = dynamicFieldRepository.findAll();
 
-        if (seller.getSellerFields().size() == dynamicFields.size()) return seller;
-
         if (seller.getSellerFields() == null)
             seller.setSellerFields(new ArrayList<>());
+
+        if (seller.getSellerFields().size() == dynamicFields.size()) return seller;
 
         boolean spotted;
         int sellerFielSize = seller.getSellerFields().size();
@@ -154,7 +165,7 @@ public class SellerImpl implements SellerService {
             for (int j = 0; j < sellerFielSize; j++) {
                 if (dynamicFields.get(i).getId() == seller.getSellerFields().get(j).getIdDynamicSellerRef()) {
                     spotted = false;
-                    j = seller.getSellerFields().size();
+                    j = sellerFielSize;
                 }
             }
             if (spotted) {
@@ -170,6 +181,43 @@ public class SellerImpl implements SellerService {
         }
 
         return sellerRepository.save(seller);
+    }
+
+    private CheckListVisita updateQuestionsCheckList(CheckListVisita checkListVisita){
+        List<DynamicQuestionCheckList> dynamicQuestionCheckLists = dynamicQuestionCheckListRepository.findAll();
+
+        if (checkListVisita.getQuestions() == null)
+            checkListVisita.setQuestions(new ArrayList<>());
+
+        if (dynamicQuestionCheckLists == null || checkListVisita.getQuestions().size() == dynamicQuestionCheckLists.size())
+            return checkListVisita;
+
+        boolean spotted;
+        int questionCheckListSize = checkListVisita.getQuestions().size();
+        QuestionCheckList questionCheckList;
+
+        for (int i = 0; i < dynamicQuestionCheckLists.size(); i++) {
+            spotted = true;
+            for (int j = 0; j < questionCheckListSize; j++) {
+                if (dynamicQuestionCheckLists.get(i).getId() == checkListVisita.getQuestions().get(j).getFieldUpdateID()) {
+                    spotted = false;
+                    j = questionCheckListSize;
+                }
+            }
+            if (spotted) {
+                questionCheckList = new QuestionCheckList();
+                questionCheckList.setCheckListVisita(checkListVisita);
+                questionCheckList.setQuestion(dynamicQuestionCheckLists.get(i).getQuestion());
+                questionCheckList.setAlternatives(dynamicQuestionCheckLists.get(i).getAlternatives());
+                questionCheckList.setAnswerRequired(dynamicQuestionCheckLists.get(i).isAnswerRequired());
+                questionCheckList.setFieldUpdateID(dynamicQuestionCheckLists.get(i).getId());
+                questionCheckList = questionCheckListRepository.save(questionCheckList);
+
+                checkListVisita.getQuestions().add(questionCheckList);
+            }
+        }
+
+        return checkListVisitaRepository.save(checkListVisita);
     }
 
 }
