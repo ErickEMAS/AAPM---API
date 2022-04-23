@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +39,9 @@ public class SellerServiceImpl implements SellerService {
 
     @Autowired
     private QuestionCheckListRepository questionCheckListRepository;
+
+    @Autowired
+    private AlternativeRepository alternativeRepository;
 
     @Override
     public DynamicField addField(DynamicField dynamicField) {
@@ -113,15 +117,18 @@ public class SellerServiceImpl implements SellerService {
         if (dynamicQuestionCheckList.getFieldUpdate().getId() == null)
             dynamicField = addField(dynamicQuestionCheckList.getFieldUpdate());
 
-        dynamicQuestionCheckList.setQuestion(dynamicQuestionCheckList.getQuestion());
-        dynamicQuestionCheckList.setActive(dynamicQuestionCheckList.isActive());
-        dynamicQuestionCheckList.setAnswerRequired(dynamicQuestionCheckList.isAnswerRequired());
-        dynamicQuestionCheckList.setAlternatives(dynamicQuestionCheckList.getAlternatives());
-        dynamicQuestionCheckList.setFieldUpdate(dynamicField);
+        DynamicQuestionCheckList _dynamicQuestionCheckList = new DynamicQuestionCheckList();
 
-        dynamicQuestionCheckList = dynamicQuestionCheckListRepository.save(dynamicQuestionCheckList);
+        _dynamicQuestionCheckList.setQuestion(dynamicQuestionCheckList.getQuestion());
+        _dynamicQuestionCheckList.setActive(dynamicQuestionCheckList.isActive());
+        _dynamicQuestionCheckList.setAnswerRequired(dynamicQuestionCheckList.isAnswerRequired());
+        _dynamicQuestionCheckList.setFieldUpdate(addField(dynamicField));
 
-        return dynamicQuestionCheckList;
+        _dynamicQuestionCheckList = dynamicQuestionCheckListRepository.save(_dynamicQuestionCheckList);
+        _dynamicQuestionCheckList.setAlternatives(persistAlternatives(dynamicQuestionCheckList.getAlternatives()));
+        _dynamicQuestionCheckList = dynamicQuestionCheckListRepository.save(_dynamicQuestionCheckList);
+
+        return _dynamicQuestionCheckList;
     }
 
     @Override
@@ -141,11 +148,41 @@ public class SellerServiceImpl implements SellerService {
 
         newCheckListVisita.setSeller(_seller);
 
-        checkListVisitaRepository.save(newCheckListVisita);
+        newCheckListVisita = checkListVisitaRepository.save(newCheckListVisita);
 
         newCheckListVisita = updateQuestionsCheckList(newCheckListVisita);
 
         return newCheckListVisita;
+    }
+
+    @Override
+    public CheckListVisita answerChecklist(CheckListVisita checkListVisita) {
+        CheckListVisita newcheckListVisita = checkListVisitaRepository.findById(checkListVisita.getId()).get();
+
+        if (newcheckListVisita == null)
+            throw new IllegalArgumentException("Seller não localizado");
+
+        if (newcheckListVisita.getDataVisita() != null)
+            throw new IllegalArgumentException("Checklist não pode ser alterado");
+
+        if (newcheckListVisita.getSeller().getId() != checkListVisita.getSeller().getId())
+            throw new IllegalArgumentException("Seller incorreto");
+
+        newcheckListVisita.setDataVisita(LocalDateTime.now());
+
+        List<QuestionCheckList> questionCheckList = checkListVisita.getQuestions();
+
+        for (QuestionCheckList question : questionCheckList ) {
+            if (question.isAnswerRequired())
+                if (question.getAnswer() == null)
+                    throw new IllegalArgumentException("Questão " + question.getQuestion() + " Obrigatório");
+        }
+
+        newcheckListVisita.setQuestions(questionCheckList);
+
+        newcheckListVisita = checkListVisitaRepository.save(newcheckListVisita);
+
+        return newcheckListVisita;
     }
 
     private Seller updateSellerFields(Seller seller){
@@ -183,8 +220,40 @@ public class SellerServiceImpl implements SellerService {
         return sellerRepository.save(seller);
     }
 
+    private List<Alternative>  listAlternative(List<String> stringAlternatives) {
+        List<Alternative> alternatives = new ArrayList<>();
+        Alternative alternative;
+
+        for (String string: stringAlternatives ) {
+            alternative = new Alternative();
+            alternative.setTittle(string);
+            alternative = alternativeRepository.save(alternative);
+
+            alternatives.add(alternative);
+        }
+
+        return alternatives;
+    }
+
+    private List<Alternative>  persistAlternatives(List<Alternative> _alternatives) {
+        List<Alternative> alternatives = new ArrayList<>();
+
+        for (Alternative _alternative: _alternatives  ) {
+            Alternative newAlternative = new Alternative();
+
+            newAlternative.setTittle(_alternative.getTittle());
+            newAlternative = alternativeRepository.save(newAlternative);
+
+            alternatives.add(newAlternative);
+        }
+
+        return alternatives;
+    }
+
     private CheckListVisita updateQuestionsCheckList(CheckListVisita checkListVisita){
         List<DynamicQuestionCheckList> dynamicQuestionCheckLists = dynamicQuestionCheckListRepository.findAll();
+        List<QuestionCheckList> questionCheckLists2022 = questionCheckListRepository.findAll();
+        List<Alternative> alternatives2022 = alternativeRepository.findAll();
 
         if (checkListVisita.getQuestions() == null)
             checkListVisita.setQuestions(new ArrayList<>());
@@ -208,16 +277,20 @@ public class SellerServiceImpl implements SellerService {
                 questionCheckList = new QuestionCheckList();
                 questionCheckList.setCheckListVisita(checkListVisita);
                 questionCheckList.setQuestion(dynamicQuestionCheckLists.get(i).getQuestion());
-                questionCheckList.setAlternatives(dynamicQuestionCheckLists.get(i).getAlternatives());
                 questionCheckList.setAnswerRequired(dynamicQuestionCheckLists.get(i).isAnswerRequired());
                 questionCheckList.setFieldUpdateID(dynamicQuestionCheckLists.get(i).getId());
+
+                questionCheckList = questionCheckListRepository.save(questionCheckList);
+                questionCheckList.setAlternatives(persistAlternatives(dynamicQuestionCheckLists.get(i).getAlternatives()));
                 questionCheckList = questionCheckListRepository.save(questionCheckList);
 
                 checkListVisita.getQuestions().add(questionCheckList);
             }
         }
 
-        return checkListVisitaRepository.save(checkListVisita);
+        checkListVisita.setQuestions(questionCheckListRepository.findByCheckListVisita_id(checkListVisita.getId()));
+
+        return checkListVisitaRepository.findById(checkListVisita.getId()).get();
     }
 
 }

@@ -1,6 +1,7 @@
 package br.com.apm.application.controllers;
 
 import br.com.apm.domain.dto.*;
+import br.com.apm.domain.models.CheckListVisita;
 import br.com.apm.domain.models.DynamicField;
 import br.com.apm.domain.models.DynamicQuestionCheckList;
 import br.com.apm.domain.models.Seller;
@@ -50,6 +51,15 @@ public class SellerController {
     public ResponseEntity<Object> startChecklist(@RequestBody Seller seller) {
         try {
             return ResponseEntity.ok(sellerService.startChecklist(seller));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @PostMapping("/answer-checklist")
+    public ResponseEntity<Object> answerChecklist(@RequestBody CheckListVisita checkListVisita) {
+        try {
+            return ResponseEntity.ok(sellerService.answerChecklist(checkListVisita));
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }

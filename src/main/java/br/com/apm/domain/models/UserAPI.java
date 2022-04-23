@@ -2,6 +2,8 @@ package br.com.apm.domain.models;
 
 import br.com.apm.domain.enums.CodeType;
 import lombok.Data;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -40,6 +42,7 @@ public class UserAPI implements UserDetails {
     @JoinTable(name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id"))
+    @Fetch(FetchMode.SUBSELECT)
     private List<Role> roles;
 
     @OneToOne(fetch = FetchType.EAGER)

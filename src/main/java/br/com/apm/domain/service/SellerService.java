@@ -14,4 +14,6 @@ public interface SellerService {
     DynamicQuestionCheckList addQuestionChecklist(DynamicQuestionCheckList dynamicQuestionCheckList);
 
     CheckListVisita startChecklist(Seller seller);
+
+    CheckListVisita answerChecklist(CheckListVisita checkListVisitaDTO);
 }

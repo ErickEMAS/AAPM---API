@@ -1,6 +1,8 @@
 package br.com.apm.domain.models;
 
 import lombok.Data;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import javax.persistence.*;
 import java.util.List;
@@ -16,8 +18,9 @@ public class DynamicQuestionCheckList {
 
     private String question;
 
-    @ElementCollection
-    private List<String> alternatives;
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @Fetch(FetchMode.SUBSELECT)
+    private List<Alternative> alternatives;
 
     private boolean answerRequired;
     private boolean active;

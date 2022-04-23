@@ -1,9 +1,11 @@
 package br.com.apm.domain.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import javax.persistence.*;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -15,10 +17,5 @@ public class Alternative {
     private UUID id;
 
     private String tittle;
-
-    @JsonIgnore
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "questionCheckList_id")
-    private QuestionCheckList questionCheckList;
 
 }

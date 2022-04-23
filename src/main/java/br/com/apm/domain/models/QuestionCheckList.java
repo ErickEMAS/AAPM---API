@@ -23,10 +23,9 @@ public class QuestionCheckList {
 
     private boolean answerRequired;
 
-    @ElementCollection(fetch=FetchType.EAGER)
-    @CollectionTable(name = "questionCheckList_alternatives", joinColumns = @JoinColumn(name = "questionCheckList_id"))
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @Fetch(FetchMode.SUBSELECT)
-    private List<String> alternatives;
+    private List<Alternative> alternatives;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.EAGER)
