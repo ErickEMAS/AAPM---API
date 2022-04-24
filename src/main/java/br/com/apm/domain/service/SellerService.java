@@ -16,4 +16,6 @@ public interface SellerService {
     CheckListVisita startChecklist(Seller seller);
 
     CheckListVisita answerChecklist(CheckListVisita checkListVisitaDTO);
+
+    Seller getSeller(UUID sellerId);
 }

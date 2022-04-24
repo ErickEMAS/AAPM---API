@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/seller")
 public class SellerController {
@@ -64,5 +66,15 @@ public class SellerController {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
+
+    @GetMapping("/get-seller")
+    public ResponseEntity<Object> getSeller(@RequestParam("sellerId") UUID sellerId) {
+        try {
+            return ResponseEntity.ok(sellerService.getSeller(sellerId));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
 }
 
