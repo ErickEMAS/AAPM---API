@@ -91,17 +91,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO signUpStepOne(SignUpDTO userWithCPF) {
-        UserAPI user = userRepository.findByCpf(userWithCPF.getCpf());
+    public UserDTO signUpStepOne(String cpf) {
+        UserAPI user = userRepository.findByCpf(cpf);
+
+        if (user == null)
+            throw new IllegalArgumentException("Nenhuma conta cadastrada com o CPF informado foi localizado no banco de dados");
+
+        if (!user.isAccountNonLocked())
+            throw new IllegalArgumentException("Conta encerrada");
 
         if (user.isEmailConfirmed())
             throw new IllegalArgumentException("Usuário já cadastrado");
-
-        if (user == null) {
-            if (!user.isAccountNonLocked())
-                throw new IllegalArgumentException("Conta encerrada");
-            throw new IllegalArgumentException("Nenhuma conta cadastrada com o CPF informado foi localizado no banco de dados");
-        }
 
         return UserDTO.toUserDTO(user);
     }

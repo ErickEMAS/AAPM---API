@@ -48,9 +48,9 @@ public class UserController {
     }
 
     @GetMapping("/sign-up-step1")
-    public ResponseEntity<Object> signUpStepOne(@RequestBody SignUpDTO userWithCPF) {
+    public ResponseEntity<Object> signUpStepOne(@RequestParam("cpf") String cpf) {
         try {
-            return ResponseEntity.ok(userService.signUpStepOne(userWithCPF));
+            return ResponseEntity.ok(userService.signUpStepOne(cpf));
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }

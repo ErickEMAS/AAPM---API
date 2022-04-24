@@ -9,7 +9,7 @@ public interface UserService {
 
     String signUp(SignUpDTO signUpDTO);
 
-    UserDTO signUpStepOne(SignUpDTO userWithCPF);
+    UserDTO signUpStepOne(String cpf);
 
     UserDTO signUpStepTwo(SignUpDTO signUpDTO);
 
