@@ -125,6 +125,9 @@ public class SellerServiceImpl implements SellerService {
         _dynamicQuestionCheckList.setFieldUpdate(addField(dynamicField));
 
         _dynamicQuestionCheckList = dynamicQuestionCheckListRepository.save(_dynamicQuestionCheckList);
+
+
+
         _dynamicQuestionCheckList.setAlternatives(persistAlternatives(dynamicQuestionCheckList.getAlternatives()));
         _dynamicQuestionCheckList = dynamicQuestionCheckListRepository.save(_dynamicQuestionCheckList);
 
@@ -141,10 +144,11 @@ public class SellerServiceImpl implements SellerService {
         _seller = updateSellerFields(_seller);
 
         CheckListVisita newCheckListVisita = new CheckListVisita();
+        List<CheckListVisita> checkListVisitasDB = checkListVisitaRepository.findBySeller_Id(_seller.getId());
 
-        if (_seller.getCheckListVisitas().size() > 0)
-            if (_seller.getCheckListVisitas().get(_seller.getCheckListVisitas().size() - 1).getDataVisita() == null)
-                newCheckListVisita = _seller.getCheckListVisitas().get(_seller.getCheckListVisitas().size() - 1);
+        if (checkListVisitasDB.size() > 0)
+            if (checkListVisitasDB.get(checkListVisitasDB.size() - 1).getDataVisita() == null)
+                newCheckListVisita = checkListVisitasDB.get(checkListVisitasDB.size() - 1);
 
         newCheckListVisita.setSeller(_seller);
 
@@ -157,33 +161,32 @@ public class SellerServiceImpl implements SellerService {
 
     @Override
     public CheckListVisita answerChecklist(CheckListVisita checkListVisita) {
-        CheckListVisita newcheckListVisita = checkListVisitaRepository.findById(checkListVisita.getId()).get();
+        CheckListVisita checkListVisitaDB = checkListVisitaRepository.findById(checkListVisita.getId()).get();
 
-        if (newcheckListVisita == null)
-            throw new IllegalArgumentException("Seller não localizado");
+        if (checkListVisitaDB == null)
+            throw new IllegalArgumentException("Checklist não foi iniciado");
 
-        if (newcheckListVisita.getDataVisita() != null)
+        if (checkListVisitaDB.getDataVisita() != null)
             throw new IllegalArgumentException("Checklist não pode ser alterado");
 
-        if (newcheckListVisita.getSeller().getId() != checkListVisita.getSeller().getId())
-            throw new IllegalArgumentException("Seller incorreto");
+        checkListVisitaDB.setDataVisita(LocalDateTime.now());
 
-        newcheckListVisita.setDataVisita(LocalDateTime.now());
-
-        List<QuestionCheckList> questionCheckList = checkListVisita.getQuestions();
-
-        for (QuestionCheckList question : questionCheckList ) {
-            if (question.isAnswerRequired())
-                if (question.getAnswer() == null)
-                    throw new IllegalArgumentException("Questão " + question.getQuestion() + " Obrigatório");
+        for (int i = 0; i < checkListVisita.getQuestions().size(); i++) {
+            QuestionCheckList questionCheckListDB = questionCheckListRepository.findById(checkListVisitaDB
+                    .getQuestions().get(i).getId()).get();
+            if (questionCheckListDB.isAnswerRequired())
+                if (checkListVisita.getQuestions().get(i).getAnswer() == null)
+                    throw new IllegalArgumentException("Questão " + checkListVisitaDB.getQuestions().get(i).getQuestion() + " é obrigatório");
         }
 
-        newcheckListVisita.setQuestions(questionCheckList);
+        checkListVisitaDB.setQuestions(checkListVisitaDB.getQuestions());
 
-        newcheckListVisita = checkListVisitaRepository.save(newcheckListVisita);
+        checkListVisitaDB = checkListVisitaRepository.save(checkListVisitaDB);
 
-        return newcheckListVisita;
+        return checkListVisitaDB;
     }
+
+
 
     private Seller updateSellerFields(Seller seller){
         List<DynamicField> dynamicFields = dynamicFieldRepository.findAll();
@@ -220,21 +223,6 @@ public class SellerServiceImpl implements SellerService {
         return sellerRepository.save(seller);
     }
 
-    private List<Alternative>  listAlternative(List<String> stringAlternatives) {
-        List<Alternative> alternatives = new ArrayList<>();
-        Alternative alternative;
-
-        for (String string: stringAlternatives ) {
-            alternative = new Alternative();
-            alternative.setTittle(string);
-            alternative = alternativeRepository.save(alternative);
-
-            alternatives.add(alternative);
-        }
-
-        return alternatives;
-    }
-
     private List<Alternative>  persistAlternatives(List<Alternative> _alternatives) {
         List<Alternative> alternatives = new ArrayList<>();
 
@@ -251,9 +239,7 @@ public class SellerServiceImpl implements SellerService {
     }
 
     private CheckListVisita updateQuestionsCheckList(CheckListVisita checkListVisita){
-        List<DynamicQuestionCheckList> dynamicQuestionCheckLists = dynamicQuestionCheckListRepository.findAll();
-        List<QuestionCheckList> questionCheckLists2022 = questionCheckListRepository.findAll();
-        List<Alternative> alternatives2022 = alternativeRepository.findAll();
+        List<DynamicQuestionCheckList> dynamicQuestionCheckLists = dynamicQuestionCheckListRepository.findByActiveTrue();
 
         if (checkListVisita.getQuestions() == null)
             checkListVisita.setQuestions(new ArrayList<>());
@@ -268,7 +254,7 @@ public class SellerServiceImpl implements SellerService {
         for (int i = 0; i < dynamicQuestionCheckLists.size(); i++) {
             spotted = true;
             for (int j = 0; j < questionCheckListSize; j++) {
-                if (dynamicQuestionCheckLists.get(i).getId() == checkListVisita.getQuestions().get(j).getFieldUpdateID()) {
+                if (dynamicQuestionCheckLists.get(i).getFieldUpdate().getId() == checkListVisita.getQuestions().get(j).getFieldUpdateID()) {
                     spotted = false;
                     j = questionCheckListSize;
                 }
