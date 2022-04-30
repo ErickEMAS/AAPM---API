@@ -5,6 +5,8 @@ import br.com.apm.domain.dto.*;
 import br.com.apm.domain.models.*;
 import br.com.apm.domain.service.SellerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -44,6 +46,9 @@ public class SellerServiceImpl implements SellerService {
     @Autowired
     private AlternativeRepository alternativeRepository;
 
+    @Autowired
+    private TagRepository tagRepository;
+
     @Override
     public DynamicField addField(DynamicField dynamicField) {
         if (dynamicField.getName() == null)
@@ -66,10 +71,10 @@ public class SellerServiceImpl implements SellerService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserAPI user = (UserAPI) authentication.getPrincipal();
 
-        Carteira fndCarteira = carteiraRepository.findByOwner_Id(user.getId());
+        Carteira carteira;
 
         if (user.getCarteira() == null){
-            Carteira carteira = new Carteira();
+            carteira = new Carteira();
             carteira.setSellers(new ArrayList<>());
             carteira.setOwner(user);
             carteira = carteiraRepository.save(carteira);
@@ -77,6 +82,9 @@ public class SellerServiceImpl implements SellerService {
             user.setCarteira(carteira);
             user = userRepository.save(user);
         }
+
+        carteira = carteiraRepository.findByOwner_Id(user.getId());
+
 
         Seller seller = new Seller();
 
@@ -92,11 +100,14 @@ public class SellerServiceImpl implements SellerService {
         seller.setNumero(sellerDTO.getNumero());
         seller.setComplemento(sellerDTO.getComplemento());
         seller.setCadastro(sellerDTO.getCadastro());
+        seller.setCarteira(carteira);
         seller.setDataPedidoTeste(sellerDTO.getDataPedidoTeste());
 
         seller = sellerRepository.save(seller);
-
         seller = updateSellerFields(seller);
+
+        carteira.getSellers().add(seller);
+        carteiraRepository.save(carteira);
 
         return seller;
     }
@@ -155,6 +166,16 @@ public class SellerServiceImpl implements SellerService {
 
         newCheckListVisita = checkListVisitaRepository.save(newCheckListVisita);
 
+        List<CheckListVisita> _checkListVisitas = new ArrayList<>();
+
+        if (_seller.getCheckListVisitas().size() > 0)
+            _checkListVisitas = _seller.getCheckListVisitas();
+
+        _checkListVisitas.add(newCheckListVisita);
+
+        seller.setCheckListVisitas(_checkListVisitas);
+        _seller = sellerRepository.save(_seller);
+
         newCheckListVisita = updateQuestionsCheckList(newCheckListVisita);
 
         return newCheckListVisita;
@@ -185,6 +206,75 @@ public class SellerServiceImpl implements SellerService {
     public Seller getSeller(UUID sellerId) {
         Seller seller = sellerRepository.findById(sellerId).get();
         return seller;
+    }
+
+    @Override
+    public Page<Seller> getSellers(String nome, UUID tagId, Pageable pageable) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserAPI user = (UserAPI) authentication.getPrincipal();
+
+        if (user.getCarteira() == null)
+            throw new IllegalArgumentException("Agente não tem carteira");
+
+        if (nome == null) nome = "";
+
+        for (Role role: user.getRoles() ) {
+            if (role.getName().intern() == "ROLE_ADMIN".intern())
+                return sellerRepository.findAll(pageable);
+        }
+
+        if (tagId == null)
+            return sellerRepository.findByCarteira_idAndNomeContainingIgnoreCase(user.getCarteira().getId(), nome, pageable);
+
+        return sellerRepository.findByTags_idAndNomeContainingIgnoreCase(tagId, nome, pageable);
+    }
+
+    @Override
+    public Tag addTag(Tag tag) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserAPI user = (UserAPI) authentication.getPrincipal();
+
+        if (tag.getName() == null)
+            throw new IllegalArgumentException("Campo Nome é obrigatório");
+
+        Tag newTag = new Tag();
+        newTag.setName(tag.getName());
+        newTag.setColor(tag.getColor());
+
+        newTag = tagRepository.save(newTag);
+
+        if (user.getTags() == null)
+            user.setTags(new ArrayList<>());
+
+        user.getTags().add(newTag);
+
+        userRepository.save(user);
+
+        return newTag;
+    }
+
+    @Override
+    public List<Tag> getTags() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserAPI user = (UserAPI) authentication.getPrincipal();
+
+        return user.getTags();
+    }
+
+    @Override
+    public Seller addTagSeller(AddTagSellerDTO addTagSellerDTO) {
+        Seller seller = sellerRepository.findById(addTagSellerDTO.getSellerId()).get();
+        Tag tag = tagRepository.findById(addTagSellerDTO.getTagId()).get();
+
+        List<Tag> sellerTags = new ArrayList<>();
+
+        if (seller.getTags() != null) sellerTags = seller.getTags();
+
+        sellerTags.add(tag);
+
+        seller.setTags(sellerTags);
+
+        return sellerRepository.save(seller);
     }
 
     private CheckListVisita updateSellerFiledValue(CheckListVisita checkListVisita){

@@ -45,6 +45,10 @@ public class UserAPI implements UserDetails {
     @Fetch(FetchMode.SUBSELECT)
     private List<Role> roles;
 
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @Fetch(FetchMode.SUBSELECT)
+    private List<Tag> tags;
+
     @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "carteira_id", referencedColumnName = "id")
     private Carteira carteira;

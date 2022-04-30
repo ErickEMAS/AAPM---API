@@ -2,7 +2,9 @@ package br.com.apm.domain.service;
 
 import br.com.apm.domain.dto.*;
 import br.com.apm.domain.models.UserAPI;
+import org.apache.catalina.User;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface UserService {
@@ -28,4 +30,8 @@ public interface UserService {
     String deleteUser(UUID userId);
 
     String reactivateUser(ReactivateUserDTO reactivateUserDTO);
+
+    String signUpAdmin(SignUpDTO userWithCPF);
+
+    List<UserAPI> getAdmins(String roleName);
 }

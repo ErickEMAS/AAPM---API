@@ -1,5 +1,6 @@
 package br.com.apm.domain.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
@@ -38,8 +39,16 @@ public class Seller {
     @Fetch(FetchMode.SUBSELECT)
     private List<CheckListVisita> checkListVisitas;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "carteira_id")
     private Carteira carteira;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "seller_tags",
+            joinColumns = @JoinColumn(name = "seller_id", referencedColumnName = "id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id", referencedColumnName = "id"))
+    @Fetch(FetchMode.SUBSELECT)
+    private List<Tag> tags;
 
 }

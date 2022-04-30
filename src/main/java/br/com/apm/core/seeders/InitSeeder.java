@@ -76,7 +76,7 @@ public class InitSeeder {
         user.setPassword(bCryptPasswordEncoder.encode("lumos123456"));
         user.setFullName("User");
         user.setNickName("usr");
-        user.setCpf("00000000000");
+        user.setCpf("11111111111");
         user.setEmailConfirmed(true);
         user.setAccountNonExpired(true);
         user.setAccountNonLocked(true);

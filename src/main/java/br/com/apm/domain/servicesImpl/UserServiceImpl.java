@@ -9,6 +9,7 @@ import br.com.apm.data.repositories.RoleRepository;
 import br.com.apm.data.repositories.UserRepository;
 import br.com.apm.domain.models.Role;
 import br.com.apm.domain.models.UserAPI;
+import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
@@ -89,6 +90,58 @@ public class UserServiceImpl implements UserService {
 
         return "Usuário cadastrado com sucesso";
     }
+
+    @Override
+    public String signUpAdmin(SignUpDTO signUpDTO) {
+        if (signUpDTO.getCpf() == null)
+            throw new IllegalArgumentException("Campo CPF Obrigatório");
+
+        UserAPI user = userRepository.findByCpf(signUpDTO.getCpf());
+
+        if (user != null){
+            if (!user.isAccountNonLocked())
+                throw new IllegalArgumentException("Usuário bloqueado");
+            throw new IllegalArgumentException("Usuário já cadastrado");
+        }
+
+
+        if (signUpDTO.getId() != null)
+            throw new IllegalArgumentException("Campo Id não dever ser informado");
+
+        if (signUpDTO.getPassword() != null)
+            throw new IllegalArgumentException("Campo Senha não dever ser informado nessa etapa");
+
+
+        if (signUpDTO.getPasswordConfirm() != null)
+            throw new IllegalArgumentException("Campo Confirmar Senha não dever ser informado nessa etapa");
+
+
+        Role role = roleRepository.findByName("ROLE_ADMIN");
+        List<Role> roles = new ArrayList<>();
+        roles.add(role);
+
+        UserAPI newUser = new UserAPI();
+        newUser.setCpf(signUpDTO.getCpf());
+        newUser.setEmail(signUpDTO.getEmail());
+        newUser.setFullName(signUpDTO.getFullName());
+        newUser.setNickName(signUpDTO.getNickName());
+        newUser.setRoles(roles);
+        newUser.setAccountNonExpired(true);
+        newUser.setAccountNonLocked(true);
+        newUser.setCredentialsNonExpired(true);
+        newUser.setEnabled(false);
+
+        newUser = userRepository.save(newUser);
+
+        return "Usuário cadastrado com sucesso";
+    }
+
+    @Override
+    public List<UserAPI> getAdmins(String roleName) {
+        List<UserAPI> users = userRepository.findByRoles_Name(roleName);
+        return users;
+    }
+
 
     @Override
     public UserDTO signUpStepOne(String cpf) {
@@ -292,7 +345,6 @@ public class UserServiceImpl implements UserService {
 
         return "Usuário reativado";
     }
-
 
     public void sendEmail(UserAPI user){
         String emailSubject = "App Agente Parceiro Magalu - Código para ";

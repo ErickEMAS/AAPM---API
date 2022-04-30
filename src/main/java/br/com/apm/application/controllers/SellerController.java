@@ -1,12 +1,11 @@
 package br.com.apm.application.controllers;
 
 import br.com.apm.domain.dto.*;
-import br.com.apm.domain.models.CheckListVisita;
-import br.com.apm.domain.models.DynamicField;
-import br.com.apm.domain.models.DynamicQuestionCheckList;
-import br.com.apm.domain.models.Seller;
+import br.com.apm.domain.models.*;
 import br.com.apm.domain.service.SellerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
@@ -71,6 +70,43 @@ public class SellerController {
     public ResponseEntity<Object> getSeller(@RequestParam("sellerId") UUID sellerId) {
         try {
             return ResponseEntity.ok(sellerService.getSeller(sellerId));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @GetMapping("/get-sellers")
+    public ResponseEntity<Object> getSellers(@RequestParam(value = "nome", required = false) String nome,
+                                             @RequestParam(value = "tagId", required = false) UUID tagId, Pageable pageable) {
+        try {
+            return ResponseEntity.ok(sellerService.getSellers(nome, tagId, pageable));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @PostMapping("/add-tag")
+    public ResponseEntity<Object> addTag(@RequestBody Tag tag) {
+        try {
+            return ResponseEntity.ok(sellerService.addTag(tag));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @GetMapping("/get-tags")
+    public ResponseEntity<Object> getTags() {
+        try {
+            return ResponseEntity.ok(sellerService.getTags());
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @PostMapping("/add-tag-seller")
+    public ResponseEntity<Object> addTagSeller(@RequestBody AddTagSellerDTO addTagSellerDTO) {
+        try {
+            return ResponseEntity.ok(sellerService.addTagSeller(addTagSellerDTO));
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }

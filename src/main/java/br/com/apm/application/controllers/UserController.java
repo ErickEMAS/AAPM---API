@@ -26,6 +26,15 @@ public class UserController {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
+    @PostMapping("/sign-up-admin")
+    @Secured("ROLE_ADMIN")
+    public ResponseEntity<Object> signUpAdmin(@RequestBody SignUpDTO userWithCPF) {
+        try {
+            return ResponseEntity.ok(userService.signUpAdmin(userWithCPF));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
 
     @PostMapping("/delete-user")
     @Secured("ROLE_ADMIN")
@@ -42,6 +51,15 @@ public class UserController {
     public ResponseEntity<Object> reactivateUser(@RequestBody ReactivateUserDTO reactivateUserDTO) {
         try {
             return ResponseEntity.ok(userService.reactivateUser(reactivateUserDTO));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @GetMapping("/get-admins")
+    public ResponseEntity<Object> getAdmins(@RequestParam("roleName") String roleName) {
+        try {
+            return ResponseEntity.ok(userService.getAdmins(roleName));
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
