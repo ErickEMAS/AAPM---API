@@ -11,6 +11,8 @@ import br.com.apm.domain.models.Role;
 import br.com.apm.domain.models.UserAPI;
 import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -137,9 +139,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserAPI> getAdmins(String roleName) {
-        List<UserAPI> users = userRepository.findByRoles_Name(roleName);
-        return users;
+    public Page<UserDTO> getUsers(String roleName, Pageable pageable) {
+        if (roleName == null) return userRepository.findAll(pageable).map(UserDTO::toUserDTO);
+
+        Page<UserDTO> pageUsers =  pageUsers = userRepository.findByRoles_Name(roleName, pageable).map(UserDTO::toUserDTO);
+
+        return pageUsers;
     }
 
 

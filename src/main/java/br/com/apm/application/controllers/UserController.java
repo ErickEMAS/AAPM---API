@@ -4,6 +4,7 @@ import br.com.apm.domain.dto.*;
 import br.com.apm.domain.models.UserAPI;
 import br.com.apm.domain.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
@@ -56,10 +57,11 @@ public class UserController {
         }
     }
 
-    @GetMapping("/get-admins")
-    public ResponseEntity<Object> getAdmins(@RequestParam("roleName") String roleName) {
+    @GetMapping("/get-users")
+    @Secured("ROLE_ADMIN")
+    public ResponseEntity<Object> getAdmins(@RequestParam(value = "roleName", required = false) String roleName, Pageable pageable) {
         try {
-            return ResponseEntity.ok(userService.getAdmins(roleName));
+            return ResponseEntity.ok(userService.getUsers(roleName, pageable));
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }

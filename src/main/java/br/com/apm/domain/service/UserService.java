@@ -3,6 +3,8 @@ package br.com.apm.domain.service;
 import br.com.apm.domain.dto.*;
 import br.com.apm.domain.models.UserAPI;
 import org.apache.catalina.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,5 +35,5 @@ public interface UserService {
 
     String signUpAdmin(SignUpDTO userWithCPF);
 
-    List<UserAPI> getAdmins(String roleName);
+    Page<UserDTO> getUsers(String roleName, Pageable pageable);
 }
