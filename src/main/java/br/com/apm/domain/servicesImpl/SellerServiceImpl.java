@@ -49,6 +49,12 @@ public class SellerServiceImpl implements SellerService {
     @Autowired
     private TagRepository tagRepository;
 
+    @Autowired
+    private FAQRepository faqRepository;
+
+    @Autowired
+    private HuntingRepository huntingRepository;
+
     @Override
     public DynamicField addField(DynamicField dynamicField) {
         if (dynamicField.getName() == null)
@@ -113,10 +119,273 @@ public class SellerServiceImpl implements SellerService {
     }
 
     @Override
+    public Seller updateSeller(Seller seller) {
+        Seller _seller = sellerRepository.findById(seller.getId()).get();
+
+        _seller.setCnpj(seller.getCnpj());
+        _seller.setHelenaSellerCode(seller.getHelenaSellerCode());
+        _seller.setNome(seller.getNome());
+        _seller.setTelefone(seller.getTelefone());
+        _seller.setEmail(seller.getEmail());
+        _seller.setCidade(seller.getCidade());
+        _seller.setUf(seller.getUf());
+        _seller.setCep(seller.getCep());
+        _seller.setEndereco(seller.getEndereco());
+        _seller.setNumero(seller.getNumero());
+        _seller.setComplemento(seller.getComplemento());
+        _seller.setCadastro(seller.getCadastro());
+        _seller.setDataPedidoTeste(seller.getDataPedidoTeste());
+
+        List<SellerField> sellerFields = new ArrayList<>();
+
+        for (SellerField _sellerField : _seller.getSellerFields()) {
+            for (SellerField sellerField : seller.getSellerFields()) {
+                if (_sellerField.getId().toString().intern() == sellerField.getId().toString().intern()) {
+                    _sellerField.setValue(sellerField.getValue());
+                }
+            }
+            sellerFields.add(_sellerField);
+        }
+
+        _seller.setSellerFields(sellerFields);
+
+        _seller = sellerRepository.save(_seller);
+        return _seller;
+    }
+
+    @Override
+    public Page<Carteira> getCarteiraWithoutOwner(Pageable pageable) {
+        return carteiraRepository.findByOwnerIsNull(pageable);
+    }
+
+    @Override
+    public Carteira tranferCarteira(TranferCarteiraDTO tranferCarteiraDTO) {
+        UserAPI user = userRepository.findById(tranferCarteiraDTO.getUserId()).get();
+        Carteira carteira = carteiraRepository.findById(tranferCarteiraDTO.getCarteiraId()).get();
+
+        if (carteira == null)
+            throw new IllegalArgumentException("Carteira não localizada");
+
+        if (user.getCarteira() == null){
+            user.setCarteira(carteira);
+            userRepository.save(user);
+
+            carteira.setOwner(user);
+            carteira = carteiraRepository.save(carteira);
+
+            return carteira;
+        }
+
+        if (user.getCarteira().getSellers().size() < 1){
+            Carteira _carteira = carteiraRepository.findByOwner_Id(user.getId());
+
+            user.setCarteira(carteira);
+            userRepository.save(user);
+
+            carteira.setOwner(user);
+            carteira = carteiraRepository.save(carteira);
+
+            carteiraRepository.delete(_carteira);
+
+            return carteira;
+        }
+
+        Carteira userCarteira = user.getCarteira();
+
+        for (Seller seller : carteira.getSellers()) {
+            seller.setCarteira(userCarteira);
+            seller = sellerRepository.save(seller);
+
+            userCarteira.getSellers().add(seller);
+        }
+
+        carteira = carteiraRepository.findById(carteira.getId()).get();
+        carteiraRepository.delete(carteira);
+
+        user.setCarteira(userCarteira);
+
+        userRepository.save(user);
+
+        carteira = user.getCarteira();
+
+        return carteira;
+    }
+
+    @Override
+    public Page<DynamicField> getFields(Pageable pageable) {
+        return dynamicFieldRepository.findAll(pageable);
+    }
+
+    @Override
+    public Page<DynamicQuestionCheckList> getQuestions(String status, Pageable pageable) {
+        if (status.intern() == "desativado".intern())
+            return dynamicQuestionCheckListRepository.findByActiveFalse(pageable);
+
+        if (status.intern() == "ativado".intern())
+            return dynamicQuestionCheckListRepository.findByActiveTrue(pageable);
+
+        return dynamicQuestionCheckListRepository.findAll(pageable);
+    }
+
+    @Override
+    public FAQ addFAQ(FAQ faq) {
+        if (faq.getQuestion() == null)
+            throw new IllegalArgumentException("Campo Pergunta é obrigatório");
+
+        if (faq.getAnswer() == null)
+            throw new IllegalArgumentException("Campo Resposta é obrigatório");
+
+        return faqRepository.save(faq);
+    }
+
+    @Override
+    public FAQ updateFAQ(FAQ faq) {
+        if (faq.getId() == null)
+            throw new IllegalArgumentException("Id é obrigatório");
+
+        if (faq.getAnswer() == null || faq.getQuestion() == null)
+            throw new IllegalArgumentException("Nenhum campo informado para alteração");
+
+        FAQ _faq = faqRepository.findById(faq.getId()).get();
+
+        if (faq.getAnswer() != null)
+            _faq.setAnswer(faq.getAnswer());
+
+        if (faq.getQuestion() != null)
+            _faq.setQuestion(faq.getQuestion());
+
+        return faqRepository.save(_faq);
+    }
+
+    @Override
+    public Page<FAQ> getFAQS(String search, Pageable pageable) {
+        if (search == null) search = "";
+
+        return faqRepository.findByQuestionContainingIgnoreCaseOrAnswerContainingIgnoreCase(search, search, pageable);
+    }
+
+    @Override
+    public Hunting addHunting(Hunting hunting) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserAPI user = (UserAPI) authentication.getPrincipal();
+
+        hunting.setUser(user);
+        hunting = huntingRepository.save(hunting);
+
+        if (user.getHuntings() ==  null)
+            user.setHuntings(new ArrayList<>());
+
+        user.getHuntings().add(hunting);
+        userRepository.save(user);
+
+        return hunting;
+    }
+
+    @Override
+    public Hunting updateHunting(Hunting hunting) {
+        if (hunting.getId() == null)
+            throw new IllegalArgumentException("Id é obrigatório");
+
+
+        Hunting _hunting = huntingRepository.findById(hunting.getId()).get();
+
+        if (_hunting == null)
+            throw new IllegalArgumentException("Hunting não localizado");
+
+        if (hunting.getCnpj() != null)
+            _hunting.setCnpj(hunting.getCnpj());
+
+        if (hunting.getNome() != null)
+            _hunting.setNome(hunting.getNome());
+
+        if (hunting.getTelefone() != null)
+            _hunting.setTelefone(hunting.getTelefone());
+
+        if (hunting.getEmail() != null)
+            _hunting.setEmail(hunting.getEmail());
+
+        if (hunting.getCidade() != null)
+            _hunting.setCidade(hunting.getCidade());
+
+        if (hunting.getUf() != null)
+            _hunting.setUf(hunting.getUf());
+
+        if (hunting.getCep() != null)
+            _hunting.setCep(hunting.getCep());
+
+        if (hunting.getEndereco() != null)
+            _hunting.setEndereco(hunting.getEndereco());
+
+        if (hunting.getNumero() != null)
+            _hunting.setNumero(hunting.getNumero());
+
+        if (hunting.getComplemento() != null)
+            _hunting.setComplemento(hunting.getComplemento());
+
+        return huntingRepository.save(_hunting);
+    }
+
+    @Override
+    public Page<Hunting> getHuntings(String nome, Pageable pageable) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserAPI user = (UserAPI) authentication.getPrincipal();
+
+        if (nome == null ) nome = "";
+
+        return huntingRepository.findByUser_idAndNomeContainingIgnoreCase(user.getId(), nome, pageable);
+    }
+
+    @Override
+    public DynamicQuestionCheckList updateQuestionChecklist(DynamicQuestionCheckList dynamicQuestionCheckList) {
+        if (dynamicQuestionCheckList.getId() == null)
+            throw new IllegalArgumentException("Id é obrigatório");
+
+
+        DynamicQuestionCheckList _dynamicQuestionCheckList = dynamicQuestionCheckListRepository
+                .findById(dynamicQuestionCheckList.getId()).get();
+
+        if (_dynamicQuestionCheckList == null)
+            throw new IllegalArgumentException("Questão não localizada");
+
+        if (dynamicQuestionCheckList.getQuestion() != null)
+            _dynamicQuestionCheckList.setQuestion(dynamicQuestionCheckList.getQuestion());
+
+        if (dynamicQuestionCheckList.getFieldUpdate() != null)
+            _dynamicQuestionCheckList.setFieldUpdate(dynamicQuestionCheckList.getFieldUpdate());
+
+        if (dynamicQuestionCheckList.isAnswerRequired() != _dynamicQuestionCheckList.isAnswerRequired())
+            _dynamicQuestionCheckList.setAnswerRequired(dynamicQuestionCheckList.isAnswerRequired());
+
+        if (dynamicQuestionCheckList.isActive() != _dynamicQuestionCheckList.isActive())
+            _dynamicQuestionCheckList.setActive(dynamicQuestionCheckList.isActive());
+
+        if (dynamicQuestionCheckList.getAlternatives() != null) {
+            List<Alternative> alternatives = new ArrayList<>();
+
+            for (Alternative _alternative : _dynamicQuestionCheckList.getAlternatives()) {
+                for (Alternative alternative : dynamicQuestionCheckList.getAlternatives()) {
+                    if (_alternative.getId().toString().intern() == alternative.getId().toString().intern())
+                        if (_alternative.getName().intern() != alternative.getName().intern()) {
+                            _alternative.setName(alternative.getName());
+                            alternativeRepository.save(_alternative);
+                        }
+                }
+                alternatives.add(_alternative);
+            }
+
+            _dynamicQuestionCheckList.setAlternatives(alternatives);
+        }
+
+        _dynamicQuestionCheckList = dynamicQuestionCheckListRepository.save(_dynamicQuestionCheckList);
+
+        return _dynamicQuestionCheckList;
+    }
+
+    @Override
     public DynamicQuestionCheckList addQuestionChecklist(DynamicQuestionCheckList dynamicQuestionCheckList) {
 
         if (dynamicQuestionCheckList.getFieldUpdate() == null)
-            throw new IllegalArgumentException("Um campo dinamico deve ser relacionado a essa questão");
+            throw new IllegalArgumentException("Um campo dinâmico deve ser relacionado a essa questão");
 
         if (dynamicQuestionCheckList.getQuestion() == null)
             throw new IllegalArgumentException("Campo pergunta é obrigátorio");
@@ -183,6 +452,9 @@ public class SellerServiceImpl implements SellerService {
 
     @Override
     public CheckListVisita answerChecklist(CheckListVisita checkListVisita) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserAPI user = (UserAPI) authentication.getPrincipal();
+
         CheckListVisita checkListVisitaDB = checkListVisitaRepository.findById(checkListVisita.getId()).get();
 
         if (checkListVisitaDB == null)
@@ -193,6 +465,7 @@ public class SellerServiceImpl implements SellerService {
 
         checkListVisitaDB.setDataVisita(LocalDateTime.now());
         checkListVisitaDB.setQuestions(checkListVisitaDB.getQuestions());
+        checkListVisitaDB.setNomeAgente(user.getFullName());
 
         updateSellerFiledValue(checkListVisita);
 
@@ -218,7 +491,7 @@ public class SellerServiceImpl implements SellerService {
 
         if (nome == null) nome = "";
 
-        for (Role role: user.getRoles() ) {
+        for (Role role : user.getRoles() ) {
             if (role.getName().intern() == "ROLE_ADMIN".intern())
                 return sellerRepository.findAll(pageable);
         }
@@ -237,6 +510,11 @@ public class SellerServiceImpl implements SellerService {
         if (tag.getName() == null)
             throw new IllegalArgumentException("Campo Nome é obrigatório");
 
+        for (Tag _tag : user.getTags()) {
+            if (_tag.getName().intern() == tag.getName().intern())
+                throw new IllegalArgumentException("Uma tag com esse nome já existe");
+        }
+
         Tag newTag = new Tag();
         newTag.setName(tag.getName());
         newTag.setColor(tag.getColor());
@@ -251,6 +529,49 @@ public class SellerServiceImpl implements SellerService {
         userRepository.save(user);
 
         return newTag;
+    }
+
+    @Override
+    public Tag deleteTag(Tag tag) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserAPI user = (UserAPI) authentication.getPrincipal();
+
+        if (tag.getId() == null)
+            throw new IllegalArgumentException("Id obrigatório");
+
+        for (Tag _tag : user.getTags()) {
+            if (_tag.getName().intern() == tag.getName().intern())
+                user.getTags().remove(_tag);
+        }
+
+        user = userRepository.save(user);
+
+        Tag deleteTag = tagRepository.findById(tag.getId()).get();
+
+        tagRepository.delete(deleteTag);
+
+        return deleteTag;
+    }
+
+    @Override
+    public Tag updateTag(Tag tag) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserAPI user = (UserAPI) authentication.getPrincipal();
+
+        if (tag.getId() == null) throw new IllegalArgumentException("Id obrigatório");
+
+        Tag updateTag = tagRepository.findById(tag.getId()).get();
+        updateTag.setName(tag.getName());
+        updateTag.setColor(tag.getColor());
+
+        for (Tag _tag : user.getTags()) {
+            if (_tag.getName().intern() == updateTag.getName().intern())
+                throw new IllegalArgumentException("Uma tag com esse nome já existe");
+        }
+
+        updateTag = tagRepository.save(updateTag);
+
+        return updateTag;
     }
 
     @Override
@@ -348,7 +669,7 @@ public class SellerServiceImpl implements SellerService {
         for (Alternative _alternative: _alternatives  ) {
             Alternative newAlternative = new Alternative();
 
-            newAlternative.setTittle(_alternative.getTittle());
+            newAlternative.setName(_alternative.getName());
             newAlternative = alternativeRepository.save(newAlternative);
 
             alternatives.add(newAlternative);

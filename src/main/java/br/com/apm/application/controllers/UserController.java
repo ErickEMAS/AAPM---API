@@ -129,14 +129,5 @@ public class UserController {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
-
-    @PostMapping("/update-user")
-    public ResponseEntity<Object> updateUser(@RequestBody UpdateUserDTO updateUserDTO) {
-        try {
-            return ResponseEntity.ok(userService.updateUser(updateUserDTO));
-        } catch (Exception ex) {
-            return ResponseEntity.badRequest().body(ex.getMessage());
-        }
-    }
 }
 

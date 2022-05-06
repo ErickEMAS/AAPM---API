@@ -50,9 +50,8 @@ public class UserServiceImpl implements UserService {
         if (user != null){
             if (!user.isAccountNonLocked())
                 throw new IllegalArgumentException("Usuário bloqueado");
-            throw new IllegalArgumentException("Usuário já cadastrado");
+            throw new IllegalArgumentException("CPF já cadastrado");
         }
-
 
         if (signUpDTO.getId() != null)
             throw new IllegalArgumentException("Campo Id não dever ser informado");
@@ -63,6 +62,11 @@ public class UserServiceImpl implements UserService {
 
         if (signUpDTO.getPasswordConfirm() != null)
             throw new IllegalArgumentException("Campo Confirmar Senha não dever ser informado nessa etapa");
+
+        UserAPI _user = userRepository.findByEmail(signUpDTO.getEmail());
+
+        if (_user != null)
+            throw new IllegalArgumentException("O e-mail informado já possui um cadastro no sistema");
 
 
         Role role = roleRepository.findByName("ROLE_USER");
@@ -77,7 +81,6 @@ public class UserServiceImpl implements UserService {
         newUser.setCpf(signUpDTO.getCpf());
         newUser.setEmail(signUpDTO.getEmail());
         newUser.setFullName(signUpDTO.getFullName());
-        newUser.setNickName(signUpDTO.getNickName());
         newUser.setRoles(roles);
         newUser.setCarteira(newCarteira);
         newUser.setAccountNonExpired(true);
@@ -117,6 +120,11 @@ public class UserServiceImpl implements UserService {
         if (signUpDTO.getPasswordConfirm() != null)
             throw new IllegalArgumentException("Campo Confirmar Senha não dever ser informado nessa etapa");
 
+        UserAPI _user = userRepository.findByEmail(signUpDTO.getEmail());
+
+        if (_user != null)
+            throw new IllegalArgumentException("O e-mail informado já possui um cadastro no sistema");
+
 
         Role role = roleRepository.findByName("ROLE_ADMIN");
         List<Role> roles = new ArrayList<>();
@@ -126,7 +134,6 @@ public class UserServiceImpl implements UserService {
         newUser.setCpf(signUpDTO.getCpf());
         newUser.setEmail(signUpDTO.getEmail());
         newUser.setFullName(signUpDTO.getFullName());
-        newUser.setNickName(signUpDTO.getNickName());
         newUser.setRoles(roles);
         newUser.setAccountNonExpired(true);
         newUser.setAccountNonLocked(true);
@@ -183,8 +190,11 @@ public class UserServiceImpl implements UserService {
         if (signUpDTO.getFullName() == null)
             throw new IllegalArgumentException("Não foi possível concluir o cadastro. Campo nome, obrigatório");
 
-        if (userRepository.findByEmail(signUpDTO.getEmail()) != null)
-            throw new IllegalArgumentException("O e-mail informado já possui um cadastro no sistema");
+        UserAPI _user = userRepository.findByEmail(signUpDTO.getEmail());
+
+        if (_user != null)
+            if (_user.getId().toString().intern() != user.getId().toString().intern())
+                throw new IllegalArgumentException("O e-mail informado já possui um cadastro no sistema");
 
         verifyPassword(user, signUpDTO.getPassword(), signUpDTO.getPasswordConfirm());
 
@@ -193,7 +203,6 @@ public class UserServiceImpl implements UserService {
 
         user.setEmail(signUpDTO.getEmail());
         user.setFullName(signUpDTO.getFullName());
-        user.setNickName(signUpDTO.getNickName());
         user.setPassword(encoder.encode(signUpDTO.getPassword()));
         user.setCode(codeGenerator());
         user.setEnabled(true);
@@ -302,24 +311,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO updateUser(UpdateUserDTO updateUserDTO) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserAPI user = (UserAPI) authentication.getPrincipal();
-
-        user = userRepository.findById(user.getId()).get();
-
-        if (!user.isEmailConfirmed())
-            throw new IllegalArgumentException("E-mail precisa ser confirmado para prosseguir");
-
-        if(updateUserDTO.getNickName() != null)
-            user.setNickName(updateUserDTO.getNickName());
-
-        user = userRepository.save(user);
-
-        return UserDTO.toUserDTO(user);
-    }
-
-    @Override
     public String deleteUser(UUID userId) {
         UserAPI user = userRepository.findById(userId).get();
 
@@ -329,10 +320,23 @@ public class UserServiceImpl implements UserService {
         user.setEmailConfirmed(false);
         user.setEnabled(false);
         user.setPassword(null);
+        user.setCarteira(null);
 
         user = userRepository.save(user);
 
-        return "Usuário excluido";
+        Carteira carteira = carteiraRepository.findByOwner_Id(user.getId());
+
+        if (carteira.getSellers().size() < 1){
+            carteiraRepository.delete(carteira);
+
+            return "Usuário Desativado";
+        }
+
+        carteira.setOwner(null);
+
+        carteiraRepository.save(carteira);
+
+        return "Usuário Desativado";
     }
 
     @Override

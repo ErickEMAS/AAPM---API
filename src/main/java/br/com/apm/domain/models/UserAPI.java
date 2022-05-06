@@ -25,7 +25,6 @@ public class UserAPI implements UserDetails {
     private String password;
     private String cpf;
     private String fullName;
-    private String nickName;
     private String email;
     private boolean emailConfirmed;
 
@@ -48,6 +47,10 @@ public class UserAPI implements UserDetails {
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @Fetch(FetchMode.SUBSELECT)
     private List<Tag> tags;
+
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @Fetch(FetchMode.SUBSELECT)
+    private List<Hunting> huntings;
 
     @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "carteira_id", referencedColumnName = "id")

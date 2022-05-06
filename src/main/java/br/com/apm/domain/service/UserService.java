@@ -1,6 +1,8 @@
 package br.com.apm.domain.service;
 
 import br.com.apm.domain.dto.*;
+import br.com.apm.domain.models.DynamicField;
+import br.com.apm.domain.models.DynamicQuestionCheckList;
 import br.com.apm.domain.models.UserAPI;
 import org.apache.catalina.User;
 import org.springframework.data.domain.Page;
@@ -26,8 +28,6 @@ public interface UserService {
     String changePasswordStepTwo(ChangePasswordDTO changePasswordDTO);
 
     UserDTO changeEmail(ChangeEmaildDTO changeEmaildDTO);
-
-    UserDTO updateUser(UpdateUserDTO updateUserDTO);
 
     String deleteUser(UUID userId);
 

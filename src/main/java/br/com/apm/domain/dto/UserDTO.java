@@ -16,8 +16,7 @@ public class UserDTO {
     private String email;
     private String cpf;
     private String fullName;
-    private String nickName;
-    private boolean emailIsConfirmed;
+    private boolean emailConfirmed;
 
     private List<String> roles;
 

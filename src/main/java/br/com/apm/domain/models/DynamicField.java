@@ -21,5 +21,5 @@ public class DynamicField {
 
     @OneToOne(fetch = FetchType.EAGER)
     @Fetch(FetchMode.JOIN)
-    private DynamicQuestionCheckList DanymicquestionCheckList;
+    private DynamicQuestionCheckList DynamicquestionCheckList;
 }

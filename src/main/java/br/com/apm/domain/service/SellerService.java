@@ -26,7 +26,35 @@ public interface SellerService {
 
     Tag addTag(Tag tag);
 
+    Tag deleteTag(Tag tag);
+
+    Tag updateTag(Tag tag);
+
     List<Tag> getTags();
 
     Seller addTagSeller(AddTagSellerDTO addTagSellerDTO);
+
+    Seller updateSeller(Seller seller);
+
+    Page<Carteira> getCarteiraWithoutOwner(Pageable pageable);
+
+    Carteira tranferCarteira(TranferCarteiraDTO tranferCarteiraDTO);
+
+    Page<DynamicField> getFields(Pageable pageable);
+
+    Page<DynamicQuestionCheckList> getQuestions(String status, Pageable pageable);
+
+    FAQ addFAQ(FAQ faq);
+
+    FAQ updateFAQ(FAQ faq);
+
+    Page<FAQ> getFAQS(String search, Pageable pageable);
+
+    Hunting addHunting(Hunting hunting);
+
+    Hunting updateHunting(Hunting hunting);
+
+    Page<Hunting> getHuntings(String nome, Pageable pageable);
+
+    DynamicQuestionCheckList updateQuestionChecklist(DynamicQuestionCheckList dynamicQuestionCheckList);
 }

@@ -24,6 +24,4 @@ public class Carteira {
     @Fetch(FetchMode.JOIN)
     private UserAPI owner;
 
-
-
 }

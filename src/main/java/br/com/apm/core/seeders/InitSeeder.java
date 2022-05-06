@@ -58,7 +58,6 @@ public class InitSeeder {
         user.setEmail("admin@apm.com.br");
         user.setPassword(bCryptPasswordEncoder.encode("lumos123456"));
         user.setFullName("Admin");
-        user.setNickName("Adm");
         user.setCpf("00000000000");
         user.setEmailConfirmed(true);
         user.setAccountNonExpired(true);
@@ -75,7 +74,6 @@ public class InitSeeder {
         user.setEmail("user@apm.com.br");
         user.setPassword(bCryptPasswordEncoder.encode("lumos123456"));
         user.setFullName("User");
-        user.setNickName("usr");
         user.setCpf("11111111111");
         user.setEmailConfirmed(true);
         user.setAccountNonExpired(true);
