@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -123,6 +124,33 @@ public class SellerController {
     public ResponseEntity<Object> updateSeller(@RequestBody Seller seller) {
         try {
             return ResponseEntity.ok(sellerService.updateSeller(seller));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @PostMapping("/set-visit-itinerary")
+    public ResponseEntity<Object> setVisitItinerary(@RequestBody List<Seller> sellers) {
+        try {
+            return ResponseEntity.ok(sellerService.setVisitItinerary(sellers));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @PostMapping("/visiting")
+    public ResponseEntity<Object> sellerVisiting(@RequestBody Seller seller) {
+        try {
+            return ResponseEntity.ok(sellerService.sellerVisiting(seller));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @PostMapping("/reset-visit-itinerary")
+    public ResponseEntity<Object> resetVisitItinerary() {
+        try {
+            return ResponseEntity.ok(sellerService.resetVisitItinerary());
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }

@@ -31,6 +31,9 @@ public class Seller {
     private String cadastro;
     private String dataPedidoTeste;
 
+    private int orderVisitItinerary;
+    private boolean visiting;
+
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @Fetch(FetchMode.SUBSELECT)
     private List<SellerField> sellerFields;

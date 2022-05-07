@@ -382,6 +382,58 @@ public class SellerServiceImpl implements SellerService {
     }
 
     @Override
+    public List<Seller> setVisitItinerary(List<Seller> sellers) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserAPI user = (UserAPI) authentication.getPrincipal();
+
+        List<Seller> _sellers = new ArrayList<>();
+
+        for (Seller _seller : user.getCarteira().getSellers()) {
+            for (Seller seller : sellers) {
+                if (seller.getId().toString().intern() == _seller.getId().toString().intern()){
+                    _seller.setOrderVisitItinerary(seller.getOrderVisitItinerary());
+                    sellerRepository.save(_seller);
+                }
+            }
+            _sellers.add(_seller);
+        }
+
+        user.getCarteira().setSellers(_sellers);
+        user = userRepository.save(user);
+
+        return user.getCarteira().getSellers();
+    }
+
+    @Override
+    public List<Seller> sellerVisiting(Seller seller) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        Seller _seller = sellerRepository.findById(seller.getId()).get();
+
+        _seller.setVisiting(true);
+        sellerRepository.save(_seller);
+
+        UserAPI user = (UserAPI) authentication.getPrincipal();
+
+        return user.getCarteira().getSellers();
+    }
+
+    @Override
+    public List<Seller> resetVisitItinerary() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserAPI user = (UserAPI) authentication.getPrincipal();
+
+        for (Seller _seller : user.getCarteira().getSellers()) {
+            _seller.setVisiting(false);
+            sellerRepository.save(_seller);
+        }
+
+        userRepository.findById(user.getId());
+
+        return user.getCarteira().getSellers();
+    }
+
+    @Override
     public DynamicQuestionCheckList addQuestionChecklist(DynamicQuestionCheckList dynamicQuestionCheckList) {
 
         if (dynamicQuestionCheckList.getFieldUpdate() == null)

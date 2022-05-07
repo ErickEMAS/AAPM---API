@@ -57,4 +57,10 @@ public interface SellerService {
     Page<Hunting> getHuntings(String nome, Pageable pageable);
 
     DynamicQuestionCheckList updateQuestionChecklist(DynamicQuestionCheckList dynamicQuestionCheckList);
+
+    List<Seller> setVisitItinerary(List<Seller> sellers);
+
+    List<Seller> sellerVisiting(Seller seller);
+
+    List<Seller> resetVisitItinerary();
 }
