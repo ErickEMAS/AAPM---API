@@ -23,6 +23,7 @@ public class DynamicQuestionCheckList {
     private List<Alternative> alternatives;
 
     private boolean answerRequired;
+    private boolean multipleAlternative;
     private boolean active;
 
     @OneToOne(fetch = FetchType.EAGER)

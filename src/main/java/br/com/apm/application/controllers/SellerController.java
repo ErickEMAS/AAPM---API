@@ -174,6 +174,15 @@ public class SellerController {
         }
     }
 
+    @GetMapping("/get-activity")
+    public ResponseEntity<Object> getActivity(@RequestParam("sellerId") UUID sellerId) {
+        try {
+            return ResponseEntity.ok(sellerService.getActivity(sellerId));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
     @GetMapping("/get-seller")
     public ResponseEntity<Object> getSeller(@RequestParam("sellerId") UUID sellerId) {
         try {

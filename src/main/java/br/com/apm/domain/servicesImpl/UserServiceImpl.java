@@ -98,7 +98,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String signUpAdmin(SignUpDTO signUpDTO) {
-        if (signUpDTO.getCpf() == null)
+        if (signUpDTO.getCpf() == null || signUpDTO.getCpf() == "")
             throw new IllegalArgumentException("Campo CPF Obrigatório");
 
         UserAPI user = userRepository.findByCpf(signUpDTO.getCpf());

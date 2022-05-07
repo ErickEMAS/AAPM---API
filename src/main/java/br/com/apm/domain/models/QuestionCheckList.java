@@ -19,9 +19,9 @@ public class QuestionCheckList {
 
     private UUID fieldUpdateID;
     private String question;
-    private String answer;
 
     private boolean answerRequired;
+    private boolean multipleAlternative;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @Fetch(FetchMode.SUBSELECT)

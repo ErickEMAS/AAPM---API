@@ -13,5 +13,6 @@ public class Alternative {
     private UUID id;
 
     private String name;
+    private boolean checked;
 
 }

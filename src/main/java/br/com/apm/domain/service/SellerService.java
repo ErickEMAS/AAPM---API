@@ -63,4 +63,6 @@ public interface SellerService {
     List<Seller> sellerVisiting(Seller seller);
 
     List<Seller> resetVisitItinerary();
+
+    List<CheckListVisita> getActivity(UUID sellerId);
 }

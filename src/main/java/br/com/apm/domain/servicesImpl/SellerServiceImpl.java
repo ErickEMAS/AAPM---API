@@ -434,6 +434,16 @@ public class SellerServiceImpl implements SellerService {
     }
 
     @Override
+    public List<CheckListVisita> getActivity(UUID sellerId) {
+        Seller seller = sellerRepository.findById(sellerId).get();
+
+        if (seller == null)
+            throw new IllegalArgumentException("Seller não localizado");
+
+        return seller.getCheckListVisitas();
+    }
+
+    @Override
     public DynamicQuestionCheckList addQuestionChecklist(DynamicQuestionCheckList dynamicQuestionCheckList) {
 
         if (dynamicQuestionCheckList.getFieldUpdate() == null)
@@ -447,6 +457,13 @@ public class SellerServiceImpl implements SellerService {
         if (dynamicQuestionCheckList.getFieldUpdate().getId() != null)
             dynamicField = dynamicFieldRepository.findById(dynamicQuestionCheckList.getFieldUpdate().getId()).get();
 
+        if (dynamicField.getId() != null) {
+            DynamicField _dynamicField = dynamicFieldRepository.getById(dynamicField.getId());
+
+            if (_dynamicField != null)
+                throw new IllegalArgumentException("Esté campo já tem uma pergunta relacionada");
+        }
+
         if (dynamicQuestionCheckList.getFieldUpdate().getId() == null)
             dynamicField = addField(dynamicQuestionCheckList.getFieldUpdate());
 
@@ -455,6 +472,7 @@ public class SellerServiceImpl implements SellerService {
         _dynamicQuestionCheckList.setQuestion(dynamicQuestionCheckList.getQuestion());
         _dynamicQuestionCheckList.setActive(dynamicQuestionCheckList.isActive());
         _dynamicQuestionCheckList.setAnswerRequired(dynamicQuestionCheckList.isAnswerRequired());
+        _dynamicQuestionCheckList.setMultipleAlternative(dynamicQuestionCheckList.isMultipleAlternative());
         _dynamicQuestionCheckList.setFieldUpdate(dynamicField);
 
         _dynamicQuestionCheckList = dynamicQuestionCheckListRepository.save(_dynamicQuestionCheckList);
@@ -471,31 +489,32 @@ public class SellerServiceImpl implements SellerService {
     public CheckListVisita startChecklist(Seller seller) {
         Seller _seller = sellerRepository.findById(seller.getId()).get();
 
-        if (_seller == null)
-            throw new IllegalArgumentException("Seller não localizado");
+        if (_seller == null) throw new IllegalArgumentException("Seller não localizado");
 
         _seller = updateSellerFields(_seller);
 
         CheckListVisita newCheckListVisita = new CheckListVisita();
-        List<CheckListVisita> checkListVisitasDB = checkListVisitaRepository.findBySeller_Id(_seller.getId());
 
-        if (checkListVisitasDB.size() > 0)
-            if (checkListVisitasDB.get(checkListVisitasDB.size() - 1).getDataVisita() == null)
-                newCheckListVisita = checkListVisitasDB.get(checkListVisitasDB.size() - 1);
+        if (_seller.getCheckListVisitas() == null) _seller.setCheckListVisitas(new ArrayList<>());
+
+        List<CheckListVisita> checkListVisitas = _seller.getCheckListVisitas();
+
+        if (checkListVisitas.size() > 0){
+            checkListVisitas = checkListVisitaRepository.findBySeller_Id(_seller.getId());
+
+            if (checkListVisitas.size() > 0)
+                if (checkListVisitas.get(checkListVisitas.size() - 1).getDataVisita() == null)
+                    return checkListVisitas.get(checkListVisitas.size() - 1);
+        }
 
         newCheckListVisita.setSeller(_seller);
 
         newCheckListVisita = checkListVisitaRepository.save(newCheckListVisita);
 
-        List<CheckListVisita> _checkListVisitas = new ArrayList<>();
+        checkListVisitas.add(newCheckListVisita);
 
-        if (_seller.getCheckListVisitas().size() > 0)
-            _checkListVisitas = _seller.getCheckListVisitas();
-
-        _checkListVisitas.add(newCheckListVisita);
-
-        seller.setCheckListVisitas(_checkListVisitas);
-        _seller = sellerRepository.save(_seller);
+        seller.setCheckListVisitas(checkListVisitas);
+        sellerRepository.save(_seller);
 
         newCheckListVisita = updateQuestionsCheckList(newCheckListVisita);
 
@@ -512,11 +531,11 @@ public class SellerServiceImpl implements SellerService {
         if (checkListVisitaDB == null)
             throw new IllegalArgumentException("Checklist não foi iniciado");
 
-        if (checkListVisitaDB.getDataVisita() != null)
-            throw new IllegalArgumentException("Checklist não pode ser alterado");
+        if (checkListVisitaDB.getDataVisita() == null)
+            throw new IllegalArgumentException("Checklist não pode ser alterado" + LocalDateTime.now());
 
-        checkListVisitaDB.setDataVisita(LocalDateTime.now());
-        checkListVisitaDB.setQuestions(checkListVisitaDB.getQuestions());
+        checkListVisitaDB.setDataVisita(checkListVisita.getDataVisita());
+        checkListVisitaDB.setQuestions(checkListVisita.getQuestions());
         checkListVisitaDB.setNomeAgente(user.getFullName());
 
         updateSellerFiledValue(checkListVisita);
@@ -658,18 +677,59 @@ public class SellerServiceImpl implements SellerService {
         for (int i = 0; i < checkListVisita.getQuestions().size(); i++) {
             _questionCheckListDB = questionCheckListRepository.findById(checkListVisita.getQuestions().get(i).getId()).get();
             _questionCheckList = checkListVisita.getQuestions().get(i);
+            String valueField = "";
 
             if (_questionCheckListDB.isAnswerRequired()) {
-                if (_questionCheckList.getAnswer() == null)
-                    throw new IllegalArgumentException("Questão " + _questionCheckListDB.getQuestion() + " é obrigatório");
+                boolean answered = false;
+
+                if (!_questionCheckListDB.isMultipleAlternative()){
+                    boolean v1 = false;
+                    boolean v2 = false;
+                    for (Alternative alternative : _questionCheckList.getAlternatives()) {
+                        if (alternative.isChecked()){
+                            v2 = v1 ? true : false;
+                            v1 = true;
+                        }
+                    }
+
+                    if (v2) throw new IllegalArgumentException("Essa questão não pode ter mais de uma resposta ("
+                            + _questionCheckListDB.getQuestion() + ")");
+                }
+
+                for (Alternative alternative : _questionCheckList.getAlternatives()) {
+                    if (alternative.isChecked())
+                        answered = true;
+                }
+
+                if (!answered)
+                    throw new IllegalArgumentException("A questão: " + _questionCheckListDB.getQuestion() + " é obrigatória");
+
             }
+
+            List<Alternative> alternativeList = new ArrayList<>();
+
+            for (Alternative alternative : _questionCheckList.getAlternatives()) {
+                if (alternative.isChecked()){
+                    if (_questionCheckListDB.isMultipleAlternative())
+                        valueField = valueField + ", " + alternative.getName();
+
+                    if (!_questionCheckListDB.isMultipleAlternative())
+                        valueField = alternative.getName();
+                }
+
+                alternative = alternativeRepository.save(alternative);
+                alternativeList.add(alternative);
+            }
+
+            _questionCheckList.setAlternatives(alternativeList);
+            questionCheckListRepository.save(_questionCheckList);
 
             _sellerField = sellerFieldRepository.findByIdDynamicSellerRef(_questionCheckList.getFieldUpdateID());
 
             if (_sellerField == null)
-                throw new IllegalArgumentException("Ops! aldeu errado, Sellerfild não foi localizado");
+                throw new IllegalArgumentException("Ops! algo deu errado, Sellerfield não foi localizado");
 
-            _sellerField.setValue(_questionCheckList.getAnswer());
+            _sellerField.setValue(valueField);
             sellerFieldRepository.save(_sellerField);
         }
 
@@ -758,6 +818,7 @@ public class SellerServiceImpl implements SellerService {
                 questionCheckList.setQuestion(dynamicQuestionCheckLists.get(i).getQuestion());
                 questionCheckList.setAnswerRequired(dynamicQuestionCheckLists.get(i).isAnswerRequired());
                 questionCheckList.setFieldUpdateID(dynamicQuestionCheckLists.get(i).getFieldUpdate().getId());
+                questionCheckList.setMultipleAlternative(dynamicQuestionCheckLists.get(i).isMultipleAlternative());
 
                 questionCheckList = questionCheckListRepository.save(questionCheckList);
                 questionCheckList.setAlternatives(persistAlternatives(dynamicQuestionCheckLists.get(i).getAlternatives()));
