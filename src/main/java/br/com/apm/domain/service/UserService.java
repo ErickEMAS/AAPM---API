@@ -29,11 +29,11 @@ public interface UserService {
 
     UserDTO changeEmail(ChangeEmaildDTO changeEmaildDTO);
 
-    String deleteUser(UUID userId);
+    UserDTO deleteUser(UUID userId);
 
-    String reactivateUser(ReactivateUserDTO reactivateUserDTO);
+    UserDTO reactivateUser(ReactivateUserDTO reactivateUserDTO);
 
     String signUpAdmin(SignUpDTO userWithCPF);
 
-    Page<UserDTO> getUsers(String roleName, Pageable pageable);
+    Page<UserDTO> getUsers(String roleName, boolean active, String search, Pageable pageable);
 }

@@ -1,5 +1,6 @@
 package br.com.apm.data.repositories;
 
+import br.com.apm.domain.models.DynamicQuestionCheckList;
 import br.com.apm.domain.models.UserAPI;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,7 +15,9 @@ public interface UserRepository extends JpaRepository<UserAPI, UUID> {
     UserAPI findByEmail(String email);
     UserAPI findByCpf(String cpf);
 
-    Page<UserAPI> findByRoles_Name(String roleName, Pageable pageable);
-    Page<UserAPI> findAll(Pageable pageable);
+    Page<UserAPI> findByRoles_NameAndActiveAndFullNameContainingIgnoreCase(String roleName, boolean active, String fullName, Pageable pageable);
+
+    Page<UserAPI> findByActiveAndFullNameContainingIgnoreCase(boolean active, String fullName, Pageable pageable);
+    Page<UserAPI> findByActiveAndRoles_NameAndFullNameContainingIgnoreCase(boolean active, String fullName, String roleName, Pageable pageable);
 
 }

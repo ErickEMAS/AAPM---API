@@ -32,6 +32,8 @@ public class UserAPI implements UserDetails {
     private CodeType codeType;
     private LocalDateTime validityCode;
 
+    private Boolean active;
+
     private Boolean AccountNonExpired;
     private Boolean AccountNonLocked;
     private Boolean CredentialsNonExpired;

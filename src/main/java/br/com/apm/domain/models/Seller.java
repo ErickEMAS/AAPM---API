@@ -28,8 +28,6 @@ public class Seller {
     private String endereco;
     private String numero;
     private String complemento;
-    private String cadastro;
-    private String dataPedidoTeste;
 
     private int orderVisitItinerary;
     private boolean visiting;

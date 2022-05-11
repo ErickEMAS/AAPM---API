@@ -63,6 +63,7 @@ public class InitSeeder {
         user.setAccountNonExpired(true);
         user.setAccountNonLocked(true);
         user.setCredentialsNonExpired(true);
+        user.setActive(true);
         user.setEnabled(true);
         List<Role> listRoles = new ArrayList<>();
         listRoles.add(roleAdmin);
@@ -79,6 +80,7 @@ public class InitSeeder {
         user.setAccountNonExpired(true);
         user.setAccountNonLocked(true);
         user.setCredentialsNonExpired(true);
+        user.setActive(true);
         user.setEnabled(true);
         listRoles = new ArrayList<>();
         listRoles.add(roleUser);

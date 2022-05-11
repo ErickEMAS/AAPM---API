@@ -1,5 +1,6 @@
 package br.com.apm.domain.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
@@ -20,6 +21,7 @@ public class Carteira {
     @Fetch(FetchMode.SUBSELECT)
     private List<Seller> sellers;
 
+    @JsonIgnore
     @OneToOne(fetch = FetchType.EAGER)
     @Fetch(FetchMode.JOIN)
     private UserAPI owner;

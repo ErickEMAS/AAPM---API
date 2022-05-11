@@ -79,6 +79,14 @@ public class SellerServiceImpl implements SellerService {
 
         Carteira carteira;
 
+        if (sellerDTO.getCnpj() == null)
+                throw new IllegalArgumentException("Campo CNPJ é obrigatório");
+
+        Seller seller =  sellerRepository.findByCnpj(sellerDTO.getCnpj());
+
+        if (seller != null)
+            throw new IllegalArgumentException("CNPJ já cadastrado");
+
         if (user.getCarteira() == null){
             carteira = new Carteira();
             carteira.setSellers(new ArrayList<>());
@@ -92,7 +100,7 @@ public class SellerServiceImpl implements SellerService {
         carteira = carteiraRepository.findByOwner_Id(user.getId());
 
 
-        Seller seller = new Seller();
+        seller = new Seller();
 
         seller.setCnpj(sellerDTO.getCnpj());
         seller.setHelenaSellerCode(sellerDTO.getHelenaSellerCode());
@@ -105,9 +113,7 @@ public class SellerServiceImpl implements SellerService {
         seller.setEndereco(sellerDTO.getEndereco());
         seller.setNumero(sellerDTO.getNumero());
         seller.setComplemento(sellerDTO.getComplemento());
-        seller.setCadastro(sellerDTO.getCadastro());
         seller.setCarteira(carteira);
-        seller.setDataPedidoTeste(sellerDTO.getDataPedidoTeste());
 
         seller = sellerRepository.save(seller);
         seller = updateSellerFields(seller);
@@ -116,6 +122,76 @@ public class SellerServiceImpl implements SellerService {
         carteiraRepository.save(carteira);
 
         return seller;
+    }
+
+    @Override
+    public String addSellerList(List<SellerDTO> sellerDTOS) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserAPI user = (UserAPI) authentication.getPrincipal();
+        String errorCNPJ = "";
+        int totalSave = 0;
+
+        Carteira carteira;
+
+
+        for (SellerDTO sellerDTO : sellerDTOS) {
+            boolean save = true;
+
+            if (sellerDTO.getCnpj() == null)
+                save = false;
+
+            Seller seller =  sellerRepository.findByCnpj(sellerDTO.getCnpj());
+
+            if (seller != null){
+                errorCNPJ = errorCNPJ + seller.getCnpj() + "\n";
+                save = false;
+            }
+
+            if (user.getCarteira() == null){
+                carteira = new Carteira();
+                carteira.setSellers(new ArrayList<>());
+                carteira.setOwner(user);
+                carteira = carteiraRepository.save(carteira);
+
+                user.setCarteira(carteira);
+                user = userRepository.save(user);
+            }
+
+            if (save) {
+                carteira = carteiraRepository.findByOwner_Id(user.getId());
+
+                seller = new Seller();
+
+                seller.setCnpj(sellerDTO.getCnpj());
+                seller.setHelenaSellerCode(sellerDTO.getHelenaSellerCode());
+                seller.setNome(sellerDTO.getNome());
+                seller.setTelefone(sellerDTO.getTelefone());
+                seller.setEmail(sellerDTO.getEmail());
+                seller.setCidade(sellerDTO.getCidade());
+                seller.setUf(sellerDTO.getUf());
+                seller.setCep(sellerDTO.getCep());
+                seller.setEndereco(sellerDTO.getEndereco());
+                seller.setNumero(sellerDTO.getNumero());
+                seller.setComplemento(sellerDTO.getComplemento());
+                seller.setCarteira(carteira);
+
+                seller = sellerRepository.save(seller);
+                seller = updateSellerFields(seller);
+
+                carteira.getSellers().add(seller);
+                carteiraRepository.save(carteira);
+
+                totalSave++;
+            }
+
+        }
+
+        return "Sellers salvos: " + totalSave + "\nSellers já cadastrados:\n" + errorCNPJ;
+    }
+
+    @Override
+    public Carteira getCarteira(UUID agenteId) {
+        return carteiraRepository.findByOwner_Id(agenteId);
     }
 
     @Override
@@ -133,8 +209,6 @@ public class SellerServiceImpl implements SellerService {
         _seller.setEndereco(seller.getEndereco());
         _seller.setNumero(seller.getNumero());
         _seller.setComplemento(seller.getComplemento());
-        _seller.setCadastro(seller.getCadastro());
-        _seller.setDataPedidoTeste(seller.getDataPedidoTeste());
 
         List<SellerField> sellerFields = new ArrayList<>();
 
@@ -162,6 +236,9 @@ public class SellerServiceImpl implements SellerService {
     public Carteira tranferCarteira(TranferCarteiraDTO tranferCarteiraDTO) {
         UserAPI user = userRepository.findById(tranferCarteiraDTO.getUserId()).get();
         Carteira carteira = carteiraRepository.findById(tranferCarteiraDTO.getCarteiraId()).get();
+
+        if (!user.getActive())
+            throw new IllegalArgumentException("Carteira não localizada");
 
         if (carteira == null)
             throw new IllegalArgumentException("Carteira não localizada");
@@ -359,24 +436,36 @@ public class SellerServiceImpl implements SellerService {
         if (dynamicQuestionCheckList.isActive() != _dynamicQuestionCheckList.isActive())
             _dynamicQuestionCheckList.setActive(dynamicQuestionCheckList.isActive());
 
+        if (dynamicQuestionCheckList.getFieldUpdate() != null){
+            DynamicField dF = dynamicFieldRepository.save(dynamicQuestionCheckList.getFieldUpdate());
+            _dynamicQuestionCheckList.setFieldUpdate(dF);
+        }
+
+
         if (dynamicQuestionCheckList.getAlternatives() != null) {
             List<Alternative> alternatives = new ArrayList<>();
 
-            for (Alternative _alternative : _dynamicQuestionCheckList.getAlternatives()) {
-                for (Alternative alternative : dynamicQuestionCheckList.getAlternatives()) {
-                    if (_alternative.getId().toString().intern() == alternative.getId().toString().intern())
-                        if (_alternative.getName().intern() != alternative.getName().intern()) {
-                            _alternative.setName(alternative.getName());
-                            alternativeRepository.save(_alternative);
-                        }
-                }
-                alternatives.add(_alternative);
+            for (Alternative alternative : dynamicQuestionCheckList.getAlternatives()) {
+                if (alternative.getId() != null)
+                    alternative = alternativeRepository.save(alternative);
+
+                alternatives.add(alternative);
             }
 
             _dynamicQuestionCheckList.setAlternatives(alternatives);
         }
 
         _dynamicQuestionCheckList = dynamicQuestionCheckListRepository.save(_dynamicQuestionCheckList);
+
+        boolean noFind = false;
+        for (Alternative alternative : dynamicQuestionCheckList.getAlternatives()) {
+            for (Alternative _alternative : _dynamicQuestionCheckList.getAlternatives()) {
+                if (_alternative.getId().toString().intern() == alternative.getId().toString().intern())
+                    noFind = false;
+            }
+            if (noFind)
+                alternativeRepository.delete(alternative);
+        }
 
         return _dynamicQuestionCheckList;
     }
@@ -440,7 +529,7 @@ public class SellerServiceImpl implements SellerService {
         if (seller == null)
             throw new IllegalArgumentException("Seller não localizado");
 
-        return seller.getCheckListVisitas();
+        return checkListVisitaRepository.findBySeller_Id(seller.getId());
     }
 
     @Override
@@ -531,13 +620,14 @@ public class SellerServiceImpl implements SellerService {
         if (checkListVisitaDB == null)
             throw new IllegalArgumentException("Checklist não foi iniciado");
 
-        if (checkListVisitaDB.getDataVisita() == null)
+        if (checkListVisita.getDataVisita() == null)
             throw new IllegalArgumentException("Checklist não pode ser alterado" + LocalDateTime.now());
 
         checkListVisitaDB.setDataVisita(checkListVisita.getDataVisita());
         checkListVisitaDB.setQuestions(checkListVisita.getQuestions());
         checkListVisitaDB.setNomeAgente(user.getFullName());
 
+        checkListVisita.setSeller(checkListVisitaDB.getSeller());
         updateSellerFiledValue(checkListVisita);
 
         checkListVisitaDB = checkListVisitaRepository.save(checkListVisitaDB);
@@ -549,28 +639,29 @@ public class SellerServiceImpl implements SellerService {
     @Override
     public Seller getSeller(UUID sellerId) {
         Seller seller = sellerRepository.findById(sellerId).get();
+        seller = updateSellerFields(seller);
         return seller;
     }
 
     @Override
-    public Page<Seller> getSellers(String nome, UUID tagId, Pageable pageable) {
+    public Page<Seller> getSellers(String search, UUID tagId, Pageable pageable) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserAPI user = (UserAPI) authentication.getPrincipal();
-
-        if (user.getCarteira() == null)
-            throw new IllegalArgumentException("Agente não tem carteira");
-
-        if (nome == null) nome = "";
 
         for (Role role : user.getRoles() ) {
             if (role.getName().intern() == "ROLE_ADMIN".intern())
                 return sellerRepository.findAll(pageable);
         }
 
-        if (tagId == null)
-            return sellerRepository.findByCarteira_idAndNomeContainingIgnoreCase(user.getCarteira().getId(), nome, pageable);
+        if (user.getCarteira() == null)
+            throw new IllegalArgumentException("Agente não tem carteira");
 
-        return sellerRepository.findByTags_idAndNomeContainingIgnoreCase(tagId, nome, pageable);
+        if (search == null) search = "";
+
+        if (tagId == null)
+            return sellerRepository.findByCarteira_idAndNomeContainingIgnoreCase(user.getCarteira().getId(), search, pageable);
+
+        return sellerRepository.findByTags_idAndNomeContainingIgnoreCase(tagId, search, pageable);
     }
 
     @Override
@@ -610,15 +701,20 @@ public class SellerServiceImpl implements SellerService {
         if (tag.getId() == null)
             throw new IllegalArgumentException("Id obrigatório");
 
+        List<Tag> tags = new ArrayList<>();
+
         for (Tag _tag : user.getTags()) {
-            if (_tag.getName().intern() == tag.getName().intern())
-                user.getTags().remove(_tag);
+            if (_tag.getId().toString().intern() != tag.getId().toString().intern())
+                tags.add(_tag);
         }
 
+        user.setTags(tags);
         user = userRepository.save(user);
 
         Tag deleteTag = tagRepository.findById(tag.getId()).get();
+        deleteTag.setUser(null);
 
+        tagRepository.save(deleteTag);
         tagRepository.delete(deleteTag);
 
         return deleteTag;
@@ -637,7 +733,8 @@ public class SellerServiceImpl implements SellerService {
 
         for (Tag _tag : user.getTags()) {
             if (_tag.getName().intern() == updateTag.getName().intern())
-                throw new IllegalArgumentException("Uma tag com esse nome já existe");
+                if (_tag.getId().toString().intern() != updateTag.getId().toString().intern())
+                    throw new IllegalArgumentException("Uma tag com esse nome já existe");
         }
 
         updateTag = tagRepository.save(updateTag);
@@ -701,6 +798,9 @@ public class SellerServiceImpl implements SellerService {
                         answered = true;
                 }
 
+                if (_questionCheckList.getOthers() != null || _questionCheckList.getOthers() != "")
+                    answered = true;
+
                 if (!answered)
                     throw new IllegalArgumentException("A questão: " + _questionCheckListDB.getQuestion() + " é obrigatória");
 
@@ -709,28 +809,29 @@ public class SellerServiceImpl implements SellerService {
             List<Alternative> alternativeList = new ArrayList<>();
 
             for (Alternative alternative : _questionCheckList.getAlternatives()) {
-                if (alternative.isChecked()){
-                    if (_questionCheckListDB.isMultipleAlternative())
-                        valueField = valueField + ", " + alternative.getName();
+                if (alternative.isChecked())
+                        valueField = valueField + alternative.getName() + ", ";
 
-                    if (!_questionCheckListDB.isMultipleAlternative())
-                        valueField = alternative.getName();
-                }
+                if (_questionCheckList.getOthers() != null && _questionCheckList.getOthers() != "")
+                    valueField = valueField + _questionCheckList.getOthers();
 
                 alternative = alternativeRepository.save(alternative);
                 alternativeList.add(alternative);
             }
 
+            Seller _seller = checkListVisita.getSeller();
+
+            for (SellerField sellerField : _seller.getSellerFields()) {
+                if (sellerField.getIdDynamicSellerRef().toString().intern() == _questionCheckListDB.getFieldUpdateID().toString().intern()){
+                    sellerField.setValue(valueField);
+                    sellerFieldRepository.save(sellerField);
+                }
+            }
+
             _questionCheckList.setAlternatives(alternativeList);
+            _questionCheckList.setCheckListVisita(checkListVisita);
             questionCheckListRepository.save(_questionCheckList);
 
-            _sellerField = sellerFieldRepository.findByIdDynamicSellerRef(_questionCheckList.getFieldUpdateID());
-
-            if (_sellerField == null)
-                throw new IllegalArgumentException("Ops! algo deu errado, Sellerfield não foi localizado");
-
-            _sellerField.setValue(valueField);
-            sellerFieldRepository.save(_sellerField);
         }
 
         return checkListVisita;
@@ -742,7 +843,7 @@ public class SellerServiceImpl implements SellerService {
         if (seller.getSellerFields() == null)
             seller.setSellerFields(new ArrayList<>());
 
-        if (seller.getSellerFields().size() == dynamicFields.size()) return seller;
+        //if (seller.getSellerFields().size() == dynamicFields.size()) return seller;
 
         boolean spotted;
         SellerField sellerField;
@@ -756,6 +857,11 @@ public class SellerServiceImpl implements SellerService {
             for (int j = 0; j < seller.getSellerFields().size(); j++) {
                 _sellerField = seller.getSellerFields().get(j);
                 if (_dynamicField.getId().toString().intern() == _sellerField.getIdDynamicSellerRef().toString().intern()) {
+                    if (_dynamicField.getName().toString().intern() != _sellerField.getName().toString().intern()){
+                        _sellerField.setName(_dynamicField.getName());
+                        _sellerField = sellerFieldRepository.save(_sellerField);
+                        seller.getSellerFields().set(j, _sellerField);
+                    }
                     spotted = false;
                     j = seller.getSellerFields().size();
                 }

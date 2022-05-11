@@ -22,7 +22,7 @@ public interface SellerService {
 
     Seller getSeller(UUID sellerId);
 
-    Page<Seller> getSellers(String nome, UUID tagId, Pageable pageable);
+    Page<Seller> getSellers(String search, UUID tagId, Pageable pageable);
 
     Tag addTag(Tag tag);
 
@@ -65,4 +65,8 @@ public interface SellerService {
     List<Seller> resetVisitItinerary();
 
     List<CheckListVisita> getActivity(UUID sellerId);
+
+    String addSellerList(List<SellerDTO> sellerDTOS);
+
+    Carteira getCarteira(UUID agenteId);
 }

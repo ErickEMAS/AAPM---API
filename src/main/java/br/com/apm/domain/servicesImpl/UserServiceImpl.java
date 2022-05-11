@@ -43,6 +43,7 @@ public class UserServiceImpl implements UserService {
     public String signUp(SignUpDTO signUpDTO) {
 
         if (signUpDTO.getCpf() == null)
+        if (signUpDTO.getCpf() == null)
             throw new IllegalArgumentException("Campo CPF Obrigatório");
 
         UserAPI user = userRepository.findByCpf(signUpDTO.getCpf());
@@ -86,6 +87,7 @@ public class UserServiceImpl implements UserService {
         newUser.setAccountNonExpired(true);
         newUser.setAccountNonLocked(true);
         newUser.setCredentialsNonExpired(true);
+        newUser.setActive(true);
         newUser.setEnabled(false);
 
         newUser = userRepository.save(newUser);
@@ -138,6 +140,7 @@ public class UserServiceImpl implements UserService {
         newUser.setAccountNonExpired(true);
         newUser.setAccountNonLocked(true);
         newUser.setCredentialsNonExpired(true);
+        newUser.setActive(true);
         newUser.setEnabled(false);
 
         newUser = userRepository.save(newUser);
@@ -146,10 +149,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Page<UserDTO> getUsers(String roleName, Pageable pageable) {
-        if (roleName == null) return userRepository.findAll(pageable).map(UserDTO::toUserDTO);
+    public Page<UserDTO> getUsers(String roleName, boolean active, String search, Pageable pageable) {
+        if (roleName == null) roleName = "";
+        if (search == null) search = "";
 
-        Page<UserDTO> pageUsers =  pageUsers = userRepository.findByRoles_Name(roleName, pageable).map(UserDTO::toUserDTO);
+         List<UserAPI> users = userRepository.findAll();
+
+        if (roleName == null || roleName == "") return userRepository.findByActiveAndFullNameContainingIgnoreCase(active, search, pageable)
+                .map(UserDTO::toUserDTO);
+
+        Page<UserDTO> pageUsers = userRepository.findByActiveAndRoles_NameAndFullNameContainingIgnoreCase(active, roleName, search,  pageable)
+                .map(UserDTO::toUserDTO);
 
         return pageUsers;
     }
@@ -311,12 +321,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String deleteUser(UUID userId) {
+    public UserDTO deleteUser(UUID userId) {
         UserAPI user = userRepository.findById(userId).get();
 
         user.setAccountNonExpired(false);
         user.setAccountNonLocked(false);
         user.setCredentialsNonExpired(false);
+        user.setActive(false);
         user.setEmailConfirmed(false);
         user.setEnabled(false);
         user.setPassword(null);
@@ -325,22 +336,18 @@ public class UserServiceImpl implements UserService {
         user = userRepository.save(user);
 
         Carteira carteira = carteiraRepository.findByOwner_Id(user.getId());
+        carteira.setOwner(null);
+        carteira = carteiraRepository.save(carteira);
 
         if (carteira.getSellers().size() < 1){
             carteiraRepository.delete(carteira);
-
-            return "Usuário Desativado";
         }
 
-        carteira.setOwner(null);
-
-        carteiraRepository.save(carteira);
-
-        return "Usuário Desativado";
+        return UserDTO.toUserDTO(user);
     }
 
     @Override
-    public String reactivateUser(ReactivateUserDTO reactivateUserDTO) {
+    public UserDTO reactivateUser(ReactivateUserDTO reactivateUserDTO) {
         UserAPI user = new UserAPI();
 
         if (reactivateUserDTO.getId() != null)
@@ -352,7 +359,22 @@ public class UserServiceImpl implements UserService {
         if (reactivateUserDTO.getEmail() != null)
             user = userRepository.findByEmail(reactivateUserDTO.getEmail());
 
-        return "Usuário reativado";
+        Carteira newCarteira = new Carteira();
+        newCarteira.setSellers(new ArrayList<>());
+        newCarteira.setOwner(user);
+        newCarteira = carteiraRepository.save(newCarteira);
+
+        user.setAccountNonExpired(true);
+        user.setAccountNonLocked(true);
+        user.setCredentialsNonExpired(true);
+        user.setActive(true);
+        user.setEnabled(false);
+        user.setCarteira(newCarteira);
+
+        user = userRepository.save(user);
+
+
+        return UserDTO.toUserDTO(user);
     }
 
     public void sendEmail(UserAPI user){

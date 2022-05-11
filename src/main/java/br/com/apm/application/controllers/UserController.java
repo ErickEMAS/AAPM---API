@@ -39,9 +39,9 @@ public class UserController {
 
     @PostMapping("/delete-user")
     @Secured("ROLE_ADMIN")
-    public ResponseEntity<Object> deleteUser(@RequestBody UUID userId) {
+    public ResponseEntity<Object> deleteUser(@RequestBody UserAPI desactive) {
         try {
-            return ResponseEntity.ok(userService.deleteUser(userId));
+            return ResponseEntity.ok(userService.deleteUser(desactive.getId()));
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
@@ -59,9 +59,12 @@ public class UserController {
 
     @GetMapping("/get-users")
     @Secured("ROLE_ADMIN")
-    public ResponseEntity<Object> getAdmins(@RequestParam(value = "roleName", required = false) String roleName, Pageable pageable) {
+    public ResponseEntity<Object> getAdmins(@RequestParam(value = "roleName", required = false) String roleName,
+                                            @RequestParam(value = "active", required = false) boolean active,
+                                            @RequestParam(value = "search", required = false) String search,
+                                            Pageable pageable) {
         try {
-            return ResponseEntity.ok(userService.getUsers(roleName, pageable));
+            return ResponseEntity.ok(userService.getUsers(roleName, active, search, pageable));
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }

@@ -13,8 +13,11 @@ import java.util.UUID;
 
 public interface SellerRepository extends JpaRepository<Seller, UUID> {
 
-    Page<Seller> findByCarteira_idAndNomeContainingIgnoreCase(UUID carteiraId, String nome,  Pageable pageable);
+    Page<Seller> findByCarteira_idAndNomeContainingIgnoreCase(UUID carteiraId, String nome, Pageable pageable);
     Page<Seller> findByTags_idAndNomeContainingIgnoreCase(UUID tagId, String nome, Pageable pageable);
+    Seller findByCnpj(String cnpj);
+
+    Seller findByCheckListVisitas_id(UUID checklist_id);
 
     Page<Seller> findAll(Pageable pageable);
 

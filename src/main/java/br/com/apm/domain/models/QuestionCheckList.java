@@ -19,6 +19,7 @@ public class QuestionCheckList {
 
     private UUID fieldUpdateID;
     private String question;
+    private String others;
 
     private boolean answerRequired;
     private boolean multipleAlternative;

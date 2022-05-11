@@ -120,6 +120,15 @@ public class SellerController {
         }
     }
 
+    @PostMapping("/add-seller-list")
+    public ResponseEntity<Object> addSellerList(@RequestBody List<SellerDTO> sellerDTOS) {
+        try {
+            return ResponseEntity.ok(sellerService.addSellerList(sellerDTOS));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
     @PostMapping("/update-seller")
     public ResponseEntity<Object> updateSeller(@RequestBody Seller seller) {
         try {
@@ -183,6 +192,15 @@ public class SellerController {
         }
     }
 
+    @GetMapping("/get-carteira")
+    public ResponseEntity<Object> getCarteira(@RequestParam("sellerId") UUID agenteId) {
+        try {
+            return ResponseEntity.ok(sellerService.getCarteira(agenteId));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
     @GetMapping("/get-seller")
     public ResponseEntity<Object> getSeller(@RequestParam("sellerId") UUID sellerId) {
         try {
@@ -193,7 +211,7 @@ public class SellerController {
     }
 
     @GetMapping("/get-sellers")
-    public ResponseEntity<Object> getSellers(@RequestParam(value = "nome", required = false) String nome,
+    public ResponseEntity<Object> getSellers(@RequestParam(value = "search", required = false) String nome,
                                              @RequestParam(value = "tagId", required = false) UUID tagId,
                                              Pageable pageable) {
         try {
